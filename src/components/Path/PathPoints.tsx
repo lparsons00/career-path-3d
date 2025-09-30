@@ -1,7 +1,12 @@
-import { useState } from 'react'
+// src/components/Path/PathPoints.tsx
+import { useFrame } from '@react-three/fiber'
+import { useRef, useMemo, useState } from 'react'
+import * as THREE from 'three'
 import { Text } from '@react-three/drei'
 import type { CareerPoint } from '../../types/career'
-import { calculateDistance } from '../utils/pathUtils'
+
+// Add Strava API import and interface
+import { stravaAPI, type StravaActivity } from '../utils/strava'
 
 interface PathPointsProps {
   points: CareerPoint[]
@@ -9,146 +14,242 @@ interface PathPointsProps {
   playerPosition: [number, number, number]
 }
 
-const PathPoints: React.FC<PathPointsProps> = ({ points, onPointClick, playerPosition }) => {
-  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null)
+const PathPoints: React.FC<PathPointsProps> = ({ 
+  points, 
+  onPointClick, 
+  playerPosition 
+}) => {
+  const pointsRef = useRef<THREE.Group>(null)
+  const textRefs = useRef<THREE.Group[]>([])
+  
+  // Add Strava state
+  const [showStravaPopup, setShowStravaPopup] = useState(false)
+  const [stravaActivity, setStravaActivity] = useState<StravaActivity | null>(null)
+  const [isLoadingStrava, setIsLoadingStrava] = useState(false)
+  const [stravaError, setStravaError] = useState<string | null>(null)
+  
+  // Memoize materials to prevent recreation on every render
+  const materials = useMemo(() => {
+    return points.map(point => 
+      new THREE.MeshStandardMaterial({
+        color: point.color || "#ff6b6b",
+        emissive: 0x000000,
+        metalness: 0.3,
+        roughness: 0.4
+      })
+    )
+  }, [points])
 
-  const handlePointClick = (point: CareerPoint) => {
-    const distance = calculateDistance(playerPosition, point.position)
-    if (distance <= 3) {
-      if ((point.type === 'social' || point.type === 'hobby') && point.link) {
-        window.open(point.link, '_blank')
-      } else {
-        onPointClick(point)
-      }
+  // Add Strava click handler
+  const handleStravaClick = async () => {
+    setIsLoadingStrava(true)
+    setStravaError(null)
+    setShowStravaPopup(true)
+    
+    try {
+      const activity = await stravaAPI.getLatestActivity()
+      setStravaActivity(activity)
+    } catch (error) {
+      setStravaError(error instanceof Error ? error.message : 'Failed to load activity')
+    } finally {
+      setIsLoadingStrava(false)
     }
   }
 
+  // Enhanced click handler
+  const handlePointClick = (point: CareerPoint) => {
+    // Check if this is a Strava point
+    if (point.title.includes('Strava')) {
+      handleStravaClick()
+    } else {
+      // Handle other points normally
+      onPointClick(point)
+    }
+  }
+
+  // Make text always face the camera
+  useFrame((state) => {
+    if (!pointsRef.current) return
+    
+    const playerPos = new THREE.Vector3(...playerPosition)
+    const camera = state.camera
+    
+    pointsRef.current.children.forEach((pointGroup, index) => {
+      const point = points[index]
+      if (!point) return
+      
+      const pointPos = new THREE.Vector3(...point.position)
+      const distance = pointPos.distanceTo(playerPos)
+      
+      // Find the mesh and update emissive based on distance
+      pointGroup.children.forEach(child => {
+        if (child instanceof THREE.Mesh && materials[index]) {
+          if (distance < 5) {
+            materials[index].emissive = new THREE.Color(0x4444ff)
+          } else {
+            materials[index].emissive = new THREE.Color(0x000000)
+          }
+        }
+      })
+      
+      // Make text face the camera (billboarding)
+      const textGroup = pointGroup.children.find(child => child.type === "Group")
+      if (textGroup) {
+        textGroup.lookAt(camera.position)
+      }
+    })
+  })
+
+  // Simple popup component (you can replace this with your more sophisticated one)
+  const StravaPopup = () => {
+    if (!showStravaPopup) return null
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '20px',
+          borderRadius: '10px',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+          }}>
+            <h2 style={{ margin: 0, color: '#fc4c02' }}>🏃‍♂️ Latest Strava Activity</h2>
+            <button 
+              onClick={() => setShowStravaPopup(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {isLoadingStrava && (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <div>Loading your latest activity...</div>
+            </div>
+          )}
+
+          {stravaError && (
+            <div style={{ color: 'red', textAlign: 'center' }}>
+              <p>Error: {stravaError}</p>
+            </div>
+          )}
+
+          {stravaActivity && (
+            <div>
+              <h3 style={{ marginBottom: '15px' }}>{stravaActivity.name}</h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '10px',
+                marginBottom: '15px',
+              }}>
+                <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Distance</div>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {((stravaActivity.distance / 1000)).toFixed(2)} km
+                  </div>
+                </div>
+                
+                <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Moving Time</div>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {Math.floor(stravaActivity.moving_time / 60)}:
+                    {(stravaActivity.moving_time % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+                
+                <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Pace</div>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {stravaActivity.average_speed 
+                      ? `${Math.floor(1000 / (stravaActivity.average_speed * 60))}:${Math.round((1000 / (stravaActivity.average_speed * 60) - Math.floor(1000 / (stravaActivity.average_speed * 60))) * 60).toString().padStart(2, '0')}/km`
+                      : 'N/A'
+                    }
+                  </div>
+                </div>
+                
+                <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '5px' }}>
+                  <div style={{ fontSize: '12px', color: '#666' }}>Elevation</div>
+                  <div style={{ fontWeight: 'bold' }}>
+                    {stravaActivity.total_elevation_gain} m
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f9f9f9', padding: '10px', borderRadius: '5px' }}>
+                <p><strong>Type:</strong> {stravaActivity.type}</p>
+                <p><strong>Date:</strong> {new Date(stravaActivity.start_date_local).toLocaleDateString()}</p>
+                {stravaActivity.average_heartrate && (
+                  <p><strong>Avg HR:</strong> {Math.round(stravaActivity.average_heartrate)} bpm</p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <group>
-      {points.map((point) => {
-        const distance = calculateDistance(playerPosition, point.position)
-        const isClose = distance <= 3
-        const isHovered = hoveredPoint === point.id
-        const isSocial = point.type === 'social'
-        const isHobby = point.type === 'hobby'
-
-        // Different scaling for different node types
-        let scale: [number, number, number] = [1, 1.5, 1]
-        if (isSocial) scale = [1.2, 1.8, 1.2]
-        if (isHobby) scale = [0.9, 1.3, 0.9] // Slightly smaller for hobby nodes
-
-        return (
+    <>
+      <group ref={pointsRef}>
+        {points.map((point, index) => (
           <group key={point.id} position={point.position}>
-            {/* Base platform - different colors for hobby nodes */}
-            <mesh 
-              rotation={[-Math.PI / 2, 0, 0]}
-              position={[0, -0.3, 0]}
-            >
-              <circleGeometry args={[1, 16]} />
-              <meshStandardMaterial 
-                color={point.color}
-                transparent
-                opacity={isHobby ? 0.1 : 0.15} // More subtle for hobbies
-              />
-            </mesh>
-
-            {/* Glow effect when close */}
-            {isClose && (
-              <mesh 
-                rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, -0.2, 0]}
-              >
-                <ringGeometry args={[0.8, 1.2, 32]} />
-                <meshBasicMaterial 
-                  color={point.color}
-                  transparent
-                  opacity={isHobby ? 0.2 : 0.3}
-                />
-              </mesh>
-            )}
-
-            {/* Main point - different appearance for hobby nodes */}
-            <mesh 
+            {/* Sphere mesh with memoized material */}
+            <mesh
               onClick={() => handlePointClick(point)}
-              onPointerEnter={() => setHoveredPoint(point.id)}
-              onPointerLeave={() => setHoveredPoint(null)}
-              scale={scale}
               castShadow
+              receiveShadow
+              material={materials[index]}
             >
-              <cylinderGeometry args={[0.6, 0.6, 1.5, 16]} />
-              <meshStandardMaterial 
-                color={point.color}
-                emissive={isClose ? point.color : "#000000"}
-                emissiveIntensity={isClose ? (isHobby ? 0.2 : 0.3) : 0}
-                transparent
-                opacity={isHovered ? 0.9 : (isHobby ? 0.7 : 0.8)}
-              />
+              <sphereGeometry args={[1.5, 16, 16]} />
             </mesh>
-
-            {/* Icon */}
-            <Text
-              position={[0, 2, 0]}
-              fontSize={1.0}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {point.icon}
-            </Text>
-
-            {/* Title */}
-            <Text
-              position={[0, 3.5, 0]}
-              fontSize={0.4}
-              color="#ffffff"
-              anchorX="center"
-              anchorY="middle"
-              maxWidth={4}
-            >
-              {point.title}
-            </Text>
-
-            {/* Year for career/passion nodes, different label for hobbies */}
-            {!isSocial && !isHobby && (
+            
+            {/* Title label that will face camera */}
+            <group ref={el => { if (el) textRefs.current[index] = el }}>
               <Text
-                position={[0, -0.8, 0]}
-                fontSize={0.35}
-                color="#FFD700"
+                position={[0, 3, 0]}
+                fontSize={0.6}
+                color="white"
                 anchorX="center"
-                anchorY="middle"
+                anchorY="bottom"
+                fillOpacity={0.9}
               >
-                {point.year}
+                {point.title || `Point ${point.id}`}
               </Text>
-            )}
-
-            {isHobby && (
-              <Text
-                position={[0, -0.8, 0]}
-                fontSize={0.3}
-                color="#AAAAAA"
-                anchorX="center"
-                anchorY="middle"
-              >
-                Hobby
-              </Text>
-            )}
-
-            {/* Interaction hint */}
-            {isClose && (
-              <Text
-                position={[0, -1.2, 0]}
-                fontSize={0.3}
-                color="#00ff00"
-                anchorX="center"
-                anchorY="middle"
-              >
-                {isSocial || isHobby ? "Click to visit" : "Click to learn more"}
-              </Text>
-            )}
+            </group>
           </group>
-        )
-      })}
-    </group>
+        ))}
+      </group>
+
+      {/* Render the Strava popup */}
+      <StravaPopup />
+    </>
   )
 }
 

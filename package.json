@@ -8,16 +8,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.15.11",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@react-three/fiber": "^8.15.0",
-    "@react-three/drei": "^9.85.0",
     "three": "^0.158.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/three": "^0.158.0",
+    "@vitejs/plugin-react": "^5.0.4",
     "typescript": "^5.0.0",
     "vite": "^5.0.0"
   }

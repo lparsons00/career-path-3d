@@ -9,7 +9,7 @@ export const careerPoints: CareerPoint[] = [
     year: "2015-2019",
     skills: ["Algorithms", "Data Structures", "OOP", "Java", "C++"],
     achievements: ["Graduated with Honors", "Senior Project Award"],
-    position: [0, 0.5, -10],
+    position: [10, 0.5, -10],
     icon: "🎓",
     color: "#4ecdc4",
     type: 'career'
@@ -22,7 +22,7 @@ export const careerPoints: CareerPoint[] = [
     year: "2019-2021",
     skills: ["React", "Node.js", "TypeScript", "Agile", "Testing"],
     achievements: ["Employee of the Month", "Project Lead on E-commerce Platform"],
-    position: [0, 0.5, -5],
+    position: [-50, 0.5, -5],
     icon: "💼",
     color: "#45b7d1",
     type: 'career'
@@ -35,7 +35,7 @@ export const careerPoints: CareerPoint[] = [
     year: "2021-2023",
     skills: ["Three.js", "WebGL", "AWS", "Docker", "Microservices"],
     achievements: ["Architected 3D Visualization Platform", "Mentored 3 Junior Developers"],
-    position: [0, 0.5, 0],
+    position: [-100, 0.5, 0],
     icon: "🚀",
     color: "#96ceb4",
     type: 'career'

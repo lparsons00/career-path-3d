@@ -1,6 +1,5 @@
 import { useRef, useMemo } from 'react'
 import { BufferGeometry, Vector3, LineBasicMaterial, Line } from 'three'
-import { useFrame } from '@react-three/fiber'
 
 interface CareerPathProps {
   points: [number, number, number][]
@@ -25,14 +24,6 @@ const CareerPath: React.FC<CareerPathProps> = ({ points }) => {
       opacity: 0.9
     }), 
   [])
-
-  useFrame((state) => {
-    if (lineRef.current) {
-      // Subtle pulsing animation
-      const pulse = Math.sin(state.clock.elapsedTime * 2) * 0.05 + 1
-      lineRef.current.scale.set(pulse, pulse, pulse)
-    }
-  })
 
   return (
     <primitive object={new Line(geometry, material)} ref={lineRef} />

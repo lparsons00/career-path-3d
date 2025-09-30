@@ -64,7 +64,7 @@ const CareerPopup: React.FC<CareerPopupProps> = ({ point, onClose }) => {
               <span 
                 key={index}
                 style={{
-                  background: 'rgba(255,255,255,0.1)',
+                  background: 'rgba(249, 249, 249, 0.1)',
                   padding: '0.3rem 0.8rem',
                   borderRadius: '15px',
                   fontSize: '0.9rem'

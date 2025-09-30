@@ -33,11 +33,6 @@ const PlayerCharacter: React.FC<PlayerCharacterProps> = ({ position, isMoving })
         <meshStandardMaterial color="#2980b9" />
       </mesh>
       
-      <mesh position={[0, 0.2, 0.4]} castShadow>
-        <coneGeometry args={[0.15, 0.4, 8]} />
-        <meshStandardMaterial color="#e74c3c" />
-      </mesh>
-      
       <mesh position={[0, -0.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.5, 16]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.3} />

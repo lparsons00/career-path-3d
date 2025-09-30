@@ -13,12 +13,13 @@ interface MovementControllerProps {
 const MovementController: React.FC<MovementControllerProps> = ({
   onPositionChange,
   onMovingChange,
-  careerPoints
+  // careerPoints
 }) => {
   const { camera, gl } = useThree()
   const targetPosition = useRef<[number, number, number] | null>(null)
-  const currentPosition = useRef<[number, number, number]>(careerPoints[0].position)
-  const moveSpeed = 0.05
+  // const currentPosition = useRef<[number, number, number]>(careerPoints[0].position)
+  const currentPosition = useRef<[number, number, number]>([-55,0,-22])
+  const moveSpeed = 0.15
   const raycaster = new Raycaster()
   const mouse = new Vector2()
   const groundPlane = new Plane(new Vector3(0, 1, 0), 0)

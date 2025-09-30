@@ -31,8 +31,7 @@ function App() {
         borderRadius: '10px',
         backdropFilter: 'blur(10px)'
       }}>
-        <h1>My Career Journey</h1>
-        <p>Explore my professional path in 3D</p>
+        <h2>Luke's Interactive Portfolio</h2>
       </div>
     </div>
   )
