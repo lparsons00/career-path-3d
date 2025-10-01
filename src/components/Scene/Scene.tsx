@@ -7,7 +7,7 @@ import PathPoints from '../Path/PathPoints'
 import PlayerCharacter from '../Character/PlayerCharacter'
 import MovementController from '../Character/MovementController'
 // import CareerPopup from '../../components/ui/CareerPopup'
-import ControlsHelp from '../ui/ControlsHelp'
+// import ControlsHelp from '../ui/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
 import GoldenPath from '../Path/GoldenPath'
 import GLBScene from './GLBScene'
@@ -135,7 +135,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints }) => {
         />
       )} */}
 
-      {!mobile && <ControlsHelp />}
+      {/* {!mobile && <ControlsHelp />} */}
     </div>
   )
 }
