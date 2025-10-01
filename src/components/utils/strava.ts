@@ -72,4 +72,4 @@ class StravaService {
   }
 }
 
-export const stravaService = new StravaService();
+export const stravaAPI = new StravaService();
