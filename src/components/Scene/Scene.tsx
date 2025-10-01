@@ -6,7 +6,7 @@ import type { CareerPoint } from '../../types/career'
 import PathPoints from '../Path/PathPoints'
 import PlayerCharacter from '../Character/PlayerCharacter'
 import MovementController from '../Character/MovementController'
-import CareerPopup from '../../components/ui/CareerPopup'
+// import CareerPopup from '../../components/ui/CareerPopup'
 import ControlsHelp from '../ui/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
 import GoldenPath from '../Path/GoldenPath'
@@ -128,12 +128,12 @@ const Scene: React.FC<SceneProps> = ({ careerPoints }) => {
         </Suspense>
       </Canvas>
 
-      {selectedPoint && (
+      {/* {selectedPoint && (
         <CareerPopup 
           point={selectedPoint} 
           onClose={handleClosePopup} 
         />
-      )}
+      )} */}
 
       {!mobile && <ControlsHelp />}
     </div>
