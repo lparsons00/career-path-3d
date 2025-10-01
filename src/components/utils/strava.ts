@@ -20,10 +20,14 @@ class StravaService {
   private baseUrl: string;
 
   constructor() {
-    // In production, use relative path to Vercel function
-    this.baseUrl = import.meta.env.PROD 
-      ? '/api/strava' 
-      : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001');
+    // Use relative path in production, localhost in development
+    if (import.meta.env.PROD) {
+      // In production: use relative path to same Vercel deployment
+      this.baseUrl = '/api/strava';
+    } else {
+      // In development: use local backend or mock
+      this.baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001/api/strava';
+    }
   }
 
   async getLatestActivity(): Promise<StravaActivity> {
