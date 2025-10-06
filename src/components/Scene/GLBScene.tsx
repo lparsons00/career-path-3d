@@ -2,60 +2,52 @@
 import { useGLTF } from '@react-three/drei'
 import { useEffect, useState } from 'react'
 import { logger } from '../utils/logger'
-import * as THREE from 'three';
 
 interface GLBSceneProps {
   url: string
   position: [number, number, number]
   scale: number
+  onError?: () => void
 }
 
-const GLBScene: React.FC<GLBSceneProps> = ({ url, position, scale }) => {
+const GLBScene: React.FC<GLBSceneProps> = ({ url, position, scale, onError }) => {
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [loadTime, setLoadTime] = useState<number | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [attempts, setAttempts] = useState(0)
   
-  const startTime = Date.now()
-  
-  // useGLTF doesn't return loading and error states, so we need to handle them manually
-  const scene = useGLTF(url)
-
-  useEffect(() => {
-    try {
-      if (scene) {
-        const endTime = Date.now();
-        const loadDuration = endTime - startTime;
-        setLoadTime(loadDuration);
-        setIsLoading(false);
-        
-        logger.info('GLBScene', `Model loaded successfully: ${url}`, {
-          loadTime: `${loadDuration}ms`,
-          vertices: scene.scene.children.reduce((acc, child) => 
-            acc + (child instanceof THREE.Mesh ? 
-              (child.geometry.attributes.position?.count || 0) : 0), 0)
-        });
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown GLB load error';
-      logger.error('GLBScene', `Failed to load model: ${url}`, { error: errorMsg });
+  let scene = null;
+  try {
+    // useGLTF from drei handles GLTF/GLB loading automatically
+    scene = useGLTF(url)
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown GLB load error';
+    logger.error('GLBScene', `Failed to load GLB (attempt ${attempts + 1}): ${url}`, { error: errorMsg });
+    
+    if (!loadError && attempts < 2) {
       setLoadError(errorMsg);
-      setIsLoading(false);
+      setAttempts(prev => prev + 1);
+      
+      // Retry once after a short delay
+      setTimeout(() => {
+        setLoadError(null);
+      }, 1000);
+    } else if (attempts >= 2) {
+      // Final failure after retries
+      onError?.();
     }
-  }, [scene, url, startTime]);
+  }
 
   useEffect(() => {
-    if (isLoading) {
-      logger.info('GLBScene', `Loading model: ${url}`);
+    if (scene && !loadError) {
+      logger.info('GLBScene', `GLB loaded successfully: ${url}`);
     }
-  }, [isLoading, url]);
+  }, [scene, url, loadError]);
 
-  if (loadError) {
-    logger.warn('GLBScene', `Model load issue: ${url}`, { error: loadError });
-    return null;
+  if (loadError && attempts >= 2) {
+    return null; // Final failure, let parent handle fallback
   }
 
   if (!scene) {
-    return null; // Still loading
+    return null; // Still loading or failed
   }
 
   return <primitive object={scene.scene} position={position} scale={scale} />;

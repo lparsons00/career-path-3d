@@ -1,63 +1,46 @@
 // src/App.tsx
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import Scene from './components/Scene/Scene'
+import { SimpleScene } from './components/Scene/SimpleScene'
 import { createGoldenPath } from './components/utils/pathUtils'
 import { logger } from './components/utils/logger'
 import { monitorPerformance } from './components/utils/performance'
 import './App.css'
 
-// Safe debug check - only allow on localhost or with explicit permission
 const allowDebug = () => {
   if (import.meta.env.DEV) return true;
-  
   if (typeof window === 'undefined') return false;
-  
   const isLocalhost = window.location.hostname === 'localhost';
   const hasDebugParam = window.location.search.includes('debug=true');
-  
-  // In production, only allow debug if explicitly enabled via environment
   return isLocalhost || (hasDebugParam && import.meta.env.VITE_ALLOW_DEBUG === 'true');
 }
 
 function App() {
   const careerPoints = createGoldenPath()
   const canDebug = allowDebug()
+  const [useSimpleScene, setUseSimpleScene] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Initialize performance monitoring
     monitorPerformance();
     
-    // Log application startup - sanitize data in production
-    const logData: any = {
+    logger.info('App', 'Application started', {
       careerPointsCount: careerPoints.length,
       environment: import.meta.env.MODE
-    };
+    });
 
-    // Only include sensitive data in debug mode
-    if (canDebug) {
-      logData.userAgent = navigator.userAgent;
-      logData.viewport = `${window.innerWidth}x${window.innerHeight}`;
-      logData.url = window.location.href;
+    // Auto-switch to simple scene if GLB fails repeatedly
+    const hasGLBFailed = localStorage.getItem('glb_load_failed');
+    if (hasGLBFailed === 'true') {
+      setUseSimpleScene(true);
+      logger.warn('App', 'Auto-switching to simple scene due to previous GLB failures');
     }
 
-    logger.info('App', 'Application started', logData);
+    setLoading(false);
 
-    // Log any unhandled errors
     const handleError = (event: ErrorEvent) => {
-      const errorData: any = {
-        message: event.error?.message
-      };
-
-      // Only include stack traces in debug mode
-      if (canDebug) {
-        errorData.stack = event.error?.stack;
-        errorData.filename = event.filename;
-        errorData.lineno = event.lineno;
-        errorData.colno = event.colno;
-      }
-
-      logger.error('App', 'Unhandled error', errorData);
+      logger.error('App', 'Unhandled error', { message: event.error?.message });
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
@@ -69,52 +52,37 @@ function App() {
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
 
-    // Log WebGL support
-    try {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      const webgl2 = !!canvas.getContext('webgl2');
-      
-      logger.info('App', 'WebGL support check', {
-        webgl: !!gl,
-        webgl2,
-        // Only log user agent in debug mode
-        ...(canDebug && { userAgent: navigator.userAgent })
-      });
-
-      if (!gl) {
-        logger.error('App', 'WebGL not supported in this browser');
-      }
-    } catch (error) {
-      logger.error('App', 'WebGL detection failed', {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
     };
-  }, [careerPoints.length, canDebug]);
+  }, [careerPoints.length]);
 
-  // Log career points data for debugging - only in debug mode
   useEffect(() => {
-    if (canDebug) {
-      logger.info('App', 'Career points loaded', {
-        count: careerPoints.length,
-        points: careerPoints.map(p => ({ id: p.id, title: p.title, position: p.position }))
-      });
-    } else {
-      // In production, just log the count
-      logger.info('App', 'Career points loaded', {
-        count: careerPoints.length
-      });
-    }
-  }, [careerPoints, canDebug]);
+    logger.info('App', 'Career points loaded', {
+      count: careerPoints.length
+    });
+  }, [careerPoints]);
+
+  if (loading) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#87CEEB',
+        color: 'white',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="App">
-      {/* Vercel Analytics */}
       <Analytics />
       
       <div style={{
@@ -125,7 +93,18 @@ function App() {
         height: '100%',
         zIndex: 1
       }}>
-        <Scene careerPoints={careerPoints} />
+        {useSimpleScene ? (
+          <SimpleScene />
+        ) : (
+          <Scene 
+            careerPoints={careerPoints} 
+            onGLBFailure={() => {
+              logger.error('App', 'GLB load failed, switching to simple scene');
+              localStorage.setItem('glb_load_failed', 'true');
+              setUseSimpleScene(true);
+            }}
+          />
+        )}
       </div>
       
       <div style={{
@@ -146,35 +125,63 @@ function App() {
           Luke's Interactive Portfolio
         </h2>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
-          Explore my career journey in 3D
+          {useSimpleScene ? 'Simple 3D View' : 'Explore my career journey in 3D'}
         </p>
+        {useSimpleScene && (
+          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#ff6b6b' }}>
+            Using simplified scene due to loading issues
+          </p>
+        )}
       </div>
 
-      {/* Debug info panel - only shows when debug is allowed */}
+      {/* Debug controls */}
       {canDebug && (
         <div style={{
           position: 'absolute',
           bottom: '20px',
-          right: '20px',
+          left: '20px',
           background: 'rgba(0,0,0,0.9)',
           color: 'white',
           padding: '15px',
           borderRadius: '8px',
-          fontSize: '12px',
           zIndex: 1000,
-          maxWidth: '300px',
-          fontFamily: 'monospace'
+          fontSize: '14px'
         }}>
-          <h4 style={{ margin: '0 0 10px 0', color: '#4CAF50' }}>Debug Info</h4>
-          <div style={{ lineHeight: '1.4' }}>
-            <div><strong>Environment:</strong> {import.meta.env.MODE}</div>
-            <div><strong>Career Points:</strong> {careerPoints.length}</div>
-            <div><strong>Viewport:</strong> {window.innerWidth} x {window.innerHeight}</div>
-            <div><strong>URL:</strong> {window.location.href}</div>
-            <div><strong>Debug Mode:</strong> {canDebug ? 'Enabled' : 'Disabled'}</div>
-            <div style={{ marginTop: '10px', fontSize: '10px', opacity: 0.7 }}>
-              Check console for detailed logs
-            </div>
+          <button 
+            onClick={() => setUseSimpleScene(!useSimpleScene)}
+            style={{ 
+              padding: '8px 12px', 
+              marginBottom: '10px',
+              background: '#007acc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            {useSimpleScene ? 'Try Full Scene' : 'Use Simple Scene'}
+          </button>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('glb_load_failed');
+              window.location.reload();
+            }}
+            style={{ 
+              padding: '8px 12px', 
+              marginBottom: '10px',
+              marginLeft: '10px',
+              background: '#ff6b6b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Reset GLB Cache
+          </button>
+          <div>
+            <div><strong>Mode:</strong> {useSimpleScene ? 'Simple' : 'Full'}</div>
+            <div><strong>GLB Status:</strong> {useSimpleScene ? 'Failed' : 'Attempting'}</div>
           </div>
         </div>
       )}
