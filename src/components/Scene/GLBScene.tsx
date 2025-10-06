@@ -1,70 +1,67 @@
 // src/components/Scene/GLBScene.tsx
 import { useGLTF } from '@react-three/drei'
-import { useFrame } from '@react-three/fiber'
-import { useRef, useEffect } from 'react'
-import * as THREE from 'three'
+import { useEffect, useState } from 'react'
+import { logger } from '../utils/logger'
+import * as THREE from 'three';
 
 interface GLBSceneProps {
   url: string
-  position?: [number, number, number]
-  scale?: number
-  onLoad?: (scene: THREE.Group) => void
+  position: [number, number, number]
+  scale: number
 }
 
-const GLBScene: React.FC<GLBSceneProps> = ({ 
-  url, 
-  position = [0, 0, 0],
-  scale = 1,
-  onLoad
-}) => {
-  const { scene, materials, animations } = useGLTF(url)
-  const sceneRef = useRef<THREE.Group>(null)
+const GLBScene: React.FC<GLBSceneProps> = ({ url, position, scale }) => {
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadTime, setLoadTime] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  const startTime = Date.now()
+  
+  // useGLTF doesn't return loading and error states, so we need to handle them manually
+  const scene = useGLTF(url)
 
   useEffect(() => {
-    if (sceneRef.current) {
-      // Configure shadows and materials
-      sceneRef.current.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true
-          child.receiveShadow = true
-          
-          // Optimize materials for better performance
-          if (child.material instanceof THREE.MeshStandardMaterial) {
-            child.material.roughness = 0.8
-            child.material.metalness = 0.2
-          }
-        }
-      })
-
-      // Notify parent that scene is loaded
-      if (onLoad) {
-        onLoad(sceneRef.current)
+    try {
+      if (scene) {
+        const endTime = Date.now();
+        const loadDuration = endTime - startTime;
+        setLoadTime(loadDuration);
+        setIsLoading(false);
+        
+        logger.info('GLBScene', `Model loaded successfully: ${url}`, {
+          loadTime: `${loadDuration}ms`,
+          vertices: scene.scene.children.reduce((acc, child) => 
+            acc + (child instanceof THREE.Mesh ? 
+              (child.geometry.attributes.position?.count || 0) : 0), 0)
+        });
       }
-
-      console.log('GLB Scene loaded:', {
-        materials: Object.keys(materials),
-        animations: animations?.length || 0,
-        children: sceneRef.current.children.length
-      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown GLB load error';
+      logger.error('GLBScene', `Failed to load model: ${url}`, { error: errorMsg });
+      setLoadError(errorMsg);
+      setIsLoading(false);
     }
-  }, [scene, materials, animations, onLoad])
+  }, [scene, url, startTime]);
 
-  useFrame(() => {
-    // You can add any continuous animations or updates here
-  })
+  useEffect(() => {
+    if (isLoading) {
+      logger.info('GLBScene', `Loading model: ${url}`);
+    }
+  }, [isLoading, url]);
 
-  return (
-    <primitive
-      ref={sceneRef}
-      object={scene}
-      position={position}
-      scale={scale}
-      rotation={[0, 0, 0]}
-    />
-  )
+  if (loadError) {
+    logger.warn('GLBScene', `Model load issue: ${url}`, { error: loadError });
+    return null;
+  }
+
+  if (!scene) {
+    return null; // Still loading
+  }
+
+  return <primitive object={scene.scene} position={position} scale={scale} />;
 }
 
-// Preload the model for better performance
-useGLTF.preload('/models/town/town.glb')
+// Preload the model
+useGLTF.preload('/models/town/town.glb');
 
-export default GLBScene
+export default GLBScene;
