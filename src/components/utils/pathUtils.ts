@@ -110,6 +110,28 @@ export const createGoldenPath = (): CareerPoint[] => {
       color: "#3b82f6", 
       skills: ["Side Projects", "Open Source", "Code Experiments"],
       link: "https://github.com/lparsons00"
+    },
+    {
+      id: 9,
+      title: "LinkedIn",
+      year: "Ongoing",
+      description: "Get in contact!",
+      position: [9, 0, 15],
+      type: "linkedin",
+      icon: "💾",
+      color: "#0077B5", 
+      skills: ["Networking"]
+    },
+    {
+      id: 10,
+      title: "LinkedIn",
+      year: "Ongoing",
+      description: "Get in contact!",
+      position: [-5, 0, 3],
+      type: "linkedin",
+      icon: "💾",
+      color: "#0077B5", 
+      skills: ["Networking"]
     }
   ]
 

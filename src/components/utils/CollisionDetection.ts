@@ -105,8 +105,8 @@ export const defaultCollisionBoxes: CollisionBox[] = [
    { position: [-9, 3, -8], size: [8, 2, 7], type: 'building' },
 
 
-   { position: [8.5, 3, 14.5], size: [11.3, 2, 0.5], type: 'fence' },
-   { position: [-8.5, 3, 3.5], size: [11, 2, 0.5], type: 'fence' },
+   { position: [8.5, 3, 14.5], size: [10.7, 2, 0.5], type: 'fence' },
+   { position: [-8.5, 3, 3.5], size: [8.2, 2, 0.5], type: 'fence' },
    { position: [-5, 1, 21], size: [6.5, 2, 6.5], type: 'water' },
 
    { position: [-5, 1, 24], size: [60, 2, 1], type: 'fence' },

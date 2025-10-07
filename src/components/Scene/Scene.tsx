@@ -1,16 +1,17 @@
 // src/components/Scene/Scene.tsx
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Sky, Preload } from '@react-three/drei'
-import { Suspense, useState, useCallback, useEffect } from 'react'
+import { Suspense, useState, useCallback, useEffect, useRef } from 'react'
 import type { CareerPoint } from '../../types/career'
 import PathPoints from '../Path/PathPoints'
 import PlayerCharacter from '../Character/PlayerCharacter'
 import MovementController from '../Character/MovementController'
 import CareerPopup from '../UI/CareerPopup'
+import LinkedInPopup from '../UI/LinkedInPopup' // Add this import
 import ControlsHelp from '../UI/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
 import GoldenPath from '../Path/GoldenPath'
-import GLTFScene from '../Scene/GLTFScene' // Changed from GLBScene
+import GLTFScene from '../Scene/GLTFScene'
 import * as THREE from 'three'
 import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
@@ -24,13 +25,18 @@ interface SceneProps {
 
 const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9 , 1, 19])
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9, 1, 19])
   const [isMoving, setIsMoving] = useState(false)
   const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
-  const [glbFailed, setGlbFailed] = useState(false) // Note: keeping the same state name for consistency
+  const [glbFailed, setGlbFailed] = useState(false)
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>(playerPosition)
+  
+  // LinkedIn popup state
+  const [showLinkedInPopup, setShowLinkedInPopup] = useState(false)
+  const [linkedInPoint, setLinkedInPoint] = useState<CareerPoint | null>(null)
+  const triggeredPoints = useRef<Set<string>>(new Set()) // Track which points we've already triggered
 
   // Debug mode for collision boxes - set to true to see collision boxes
   const debugMode = false
@@ -71,17 +77,76 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     setCameraTarget(playerPosition)
   }, [playerPosition])
 
+  // Check if player is near any LinkedIn points
+  useEffect(() => {
+    const checkLinkedInProximity = () => {
+      const linkedInPoints = careerPoints.filter(point => point.type === 'linkedin')
+      
+      for (const point of linkedInPoints) {
+        const pointPosition = new THREE.Vector3(point.position[0], point.position[1], point.position[2])
+        const playerPos = new THREE.Vector3(...playerPosition)
+        const distance = playerPos.distanceTo(pointPosition)
+        
+        // If player is within 3 units of a LinkedIn point and we haven't triggered it yet
+        if (distance < 3 && !triggeredPoints.current.has(point.id.toString())) {
+          logger.info('Scene', 'Player near LinkedIn point', {
+            pointId: point.id,
+            distance: distance,
+            pointPosition,
+            playerPosition
+          })
+          
+          setLinkedInPoint(point)
+          setShowLinkedInPopup(true)
+          triggeredPoints.current.add(point.id.toString()) // Mark as triggered
+          break // Only trigger one at a time
+        }
+      }
+    }
+
+    // Check proximity every 500ms
+    const interval = setInterval(checkLinkedInProximity, 500)
+    return () => clearInterval(interval)
+  }, [playerPosition, careerPoints])
+
   const handlePointClick = useCallback((point: CareerPoint) => {
     logger.info('Scene', 'Career point clicked', { 
       pointId: point.id, 
-      pointTitle: point.title 
+      pointTitle: point.title,
+      pointType: point.type
     })
-    setSelectedPoint(point)
+    
+    // If it's a LinkedIn point, show the LinkedIn popup instead of career popup
+    if (point.type === 'linkedin') {
+      setLinkedInPoint(point)
+      setShowLinkedInPopup(true)
+      triggeredPoints.current.add(point.id.toString())
+    } else {
+      setSelectedPoint(point)
+    }
   }, [])
 
   const handleClosePopup = useCallback(() => {
     setSelectedPoint(null)
   }, [])
+
+  const handleCloseLinkedInPopup = useCallback(() => {
+    setShowLinkedInPopup(false)
+    setLinkedInPoint(null)
+  }, [])
+
+  const handleVisitLinkedIn = useCallback(() => {
+    if (linkedInPoint?.link) {
+      // Open LinkedIn in new tab
+      window.open(linkedInPoint.link, '_blank', 'noopener,noreferrer')
+      logger.info('Scene', 'Opening LinkedIn URL', { url: linkedInPoint.link })
+    } else {
+      // Fallback to your LinkedIn URL
+      const defaultLinkedInUrl = 'https://www.linkedin.com/in/luke-parsons-49193b188/' // Replace with your actual LinkedIn URL
+      window.open(defaultLinkedInUrl, '_blank', 'noopener,noreferrer')
+      logger.info('Scene', 'Opening default LinkedIn URL', { url: defaultLinkedInUrl })
+    }
+  }, [linkedInPoint])
 
   const handleGLBFailure = useCallback(() => {
     logger.error('Scene', 'GLTF loading failed after all attempts', { 
@@ -89,7 +154,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       currentOrigin: window.location.origin,
       userAgent: navigator.userAgent
     })
-    setGlbFailed(true) // Note: keeping the same state name for consistency
+    setGlbFailed(true)
     onGLBFailure?.()
   }, [onGLBFailure])
 
@@ -128,23 +193,23 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     setError(`Canvas error: ${errorMessage}`)
   }, [])
 
-  // Temporary debug for GLTF loading
-  useEffect(() => {
-    // Test if GLTF file is accessible
-    fetch('/models/town/town.gltf')
-      .then(response => {
-        console.log('GLTF Response status:', response.status);
-        console.log('GLTF Response ok:', response.ok);
-        console.log('GLTF Content-Type:', response.headers.get('content-type'));
-        return response.text();
-      })
-      .then(text => {
-        console.log('GLTF first 200 chars:', text.substring(0, 200));
-      })
-      .catch(error => {
-        console.error('GLTF Fetch error:', error);
-      });
-  }, [])
+  // Remove or comment out the temporary GLTF debug
+  // useEffect(() => {
+  //   // Test if GLTF file is accessible
+  //   fetch('/models/town/town.gltf')
+  //     .then(response => {
+  //       console.log('GLTF Response status:', response.status);
+  //       console.log('GLTF Response ok:', response.ok);
+  //       console.log('GLTF Content-Type:', response.headers.get('content-type'));
+  //       return response.text();
+  //     })
+  //     .then(text => {
+  //       console.log('GLTF first 200 chars:', text.substring(0, 200));
+  //     })
+  //     .catch(error => {
+  //       console.error('GLTF Fetch error:', error);
+  //     });
+  // }, [])
 
   if (webglSupported === false) {
     return (
@@ -196,7 +261,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       }}>
         <Canvas
           camera={{
-            position: [9 , 1, 19],
+            position: [9, 1, 19],
             fov: 60,
             far: 10000,
             near: 0.1
@@ -224,7 +289,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             {/* Only try to load GLTF if it hasn't failed before */}
             {!glbFailed ? (
               <GLTFScene 
-                url="/models/town/town.gltf" // Changed from .glb to .gltf
+                url="/models/town/town.gltf"
                 position={[0, 0, 0]}
                 scale={1}
                 onError={handleGLBFailure}
@@ -312,12 +377,21 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
           </Suspense>
         </Canvas>
 
+        {/* Career Popup */}
         {selectedPoint && (
           <CareerPopup 
             point={selectedPoint} 
             onClose={handleClosePopup} 
           />
         )}
+
+        {/* LinkedIn Popup */}
+        <LinkedInPopup 
+          isOpen={showLinkedInPopup}
+          onClose={handleCloseLinkedInPopup}
+          onVisitLinkedIn={handleVisitLinkedIn}
+          userName="your" // You can customize this
+        />
 
         {!mobile && <ControlsHelp />}
       </div>

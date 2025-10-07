@@ -6,7 +6,7 @@ export interface CareerPoint {
   year: string;
   description: string;
   position: [number, number, number];
-  type: "career" | "passion" | "social" | "fitness";
+  type: "career" | "passion" | "social" | "fitness"| "linkedin";
   icon: string;
   color: string;
   skills: string[];
@@ -19,4 +19,3 @@ export interface MovementState {
   isMoving: boolean;
   direction: number;
 }
-

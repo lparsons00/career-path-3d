@@ -215,12 +215,15 @@ const PathPoints: React.FC<PathPointsProps> = ({
     )
   }
 
-  return (
+
+
+  //
+return (
     <>
       <group ref={pointsRef}>
         {points.map((point, index) => (
-          <group key={point.id} position={point.position}>
-            {/* Sphere mesh with memoized material */}
+          <group key={point.id} position={[point.position[0], point.position[1], point.position[2]]}>
+            {/* Different geometry based on point type */}
             <mesh
               onClick={() => handlePointClick(point)}
               onPointerDown={() => handlePointClick(point)}
@@ -228,31 +231,39 @@ const PathPoints: React.FC<PathPointsProps> = ({
               receiveShadow
               material={materials[index]}
             >
-              <sphereGeometry args={[1.5, 16, 16]} />
+              {point.type === 'linkedin' ? (
+                // LinkedIn point: Box geometry (square)
+                <boxGeometry args={[1.8, 3, .3]} />
+              ) : (
+                // Regular career point: Sphere geometry
+                <sphereGeometry args={[1.5, 16, 16]} />
+              )}
             </mesh>
             
             {/* Title label that will face camera */}
             <group ref={el => { if (el) textRefs.current[index] = el }}>
               <Text
-                position={[0, 2, 0]}
+                position={[0, 2.5, 0]}
                 fontSize={0.75}
                 color="white"
                 anchorX="center"
                 anchorY="bottom"
-                fillOpacity={3}
+                fillOpacity={1}
               >
                 {point.title || `Point ${point.id}`}
               </Text>
-              <Text
-                position={[0, 1.5, 0]}
-                fontSize={0.6}
-                color="white"
-                anchorX="center"
-                anchorY="bottom"
-                fillOpacity={1.75}
-              >
-                {point.subtitle || ``}
-              </Text>
+              {point.subtitle && (
+                <Text
+                  position={[0, 1.8, 0]}
+                  fontSize={0.6}
+                  color="#cccccc"
+                  anchorX="center"
+                  anchorY="bottom"
+                  fillOpacity={0.8}
+                >
+                  {point.subtitle}
+                </Text>
+              )}
             </group>
           </group>
         ))}
@@ -265,3 +276,54 @@ const PathPoints: React.FC<PathPointsProps> = ({
 }
 
 export default PathPoints
+//   //
+//   return (
+//     <>
+//       <group ref={pointsRef}>
+//         {points.map((point, index) => (
+//           <group key={point.id} position={point.position}>
+//             {/* Sphere mesh with memoized material */}
+//             <mesh
+//               onClick={() => handlePointClick(point)}
+//               onPointerDown={() => handlePointClick(point)}
+//               castShadow
+//               receiveShadow
+//               material={materials[index]}
+//             >
+//               <sphereGeometry args={[1.5, 16, 16]} />
+//             </mesh>
+            
+//             {/* Title label that will face camera */}
+//             <group ref={el => { if (el) textRefs.current[index] = el }}>
+//               <Text
+//                 position={[0, 2, 0]}
+//                 fontSize={0.75}
+//                 color="white"
+//                 anchorX="center"
+//                 anchorY="bottom"
+//                 fillOpacity={3}
+//               >
+//                 {point.title || `Point ${point.id}`}
+//               </Text>
+//               <Text
+//                 position={[0, 1.5, 0]}
+//                 fontSize={0.6}
+//                 color="white"
+//                 anchorX="center"
+//                 anchorY="bottom"
+//                 fillOpacity={1.75}
+//               >
+//                 {point.subtitle || ``}
+//               </Text>
+//             </group>
+//           </group>
+//         ))}
+//       </group>
+
+//       {/* Render the Strava popup */}
+//       <StravaPopup />
+//     </>
+//   )
+// }
+
+// export default PathPoints
