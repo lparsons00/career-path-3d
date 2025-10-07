@@ -15,6 +15,7 @@ import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
 import { CollisionProvider } from '../../context/CollisionContext'
 import CollisionDebug from '../Debug/CollisionDebug'
+import VercelDebug from '../Debug/VercelDebug'
 
 interface SceneProps {
   careerPoints: CareerPoint[]
@@ -171,6 +172,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         position: 'relative',
         touchAction: 'none'
       }}>
+        <VercelDebug />
         <Canvas
           camera={{
             position: [-55, 25, -22],

@@ -1,6 +1,6 @@
 // vite.config.ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -14,18 +14,16 @@ export default defineConfig({
         }
       }
     },
-    // Ensure assets are properly handled
     assetsInlineLimit: 0
   },
   optimizeDeps: {
     include: ['three']
   },
-  // Ensure public directory is properly served
   publicDir: 'public',
+  base: '/', // Ensure base is set to root
   server: {
-    // For local development
     fs: {
       allow: ['..']
     }
   }
-})
+});
