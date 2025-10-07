@@ -1,8 +1,10 @@
 // src/App.tsx
 import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import Scene from './components/Scene/Scene'
 import { SimpleScene } from './components/Scene/SimpleScene'
+import ProjectsShowcase from './components/Projects/ProjectsShowcase'
 import { createGoldenPath } from './components/utils/pathUtils'
 import { logger } from './components/utils/logger'
 import { monitorPerformance } from './components/utils/performance'
@@ -64,27 +66,13 @@ function App() {
     });
   }, [careerPoints]);
 
-  if (loading) {
-    return (
-      <div style={{
-        width: '100%',
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#87CEEB',
-        color: 'white',
-        fontSize: '18px'
-      }}>
-        Loading...
-      </div>
-    );
-  }
-
-  return (
-    <div className="App">
-      <Analytics />
-      
+  // Scene component with all existing functionality
+  const PortfolioScene = () => (
+    <div style={{
+      position: 'relative',
+      width: '100%',
+      height: '100vh'
+    }}>
       <div style={{
         position: 'absolute',
         top: 0,
@@ -107,6 +95,7 @@ function App() {
         )}
       </div>
       
+      {/* Keep your existing header */}
       <div style={{
         position: 'absolute',
         top: '20px',
@@ -125,7 +114,7 @@ function App() {
           Luke's Portfolio
         </h2>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
-          {useSimpleScene ? 'Simple 3D View' : ''}
+          {useSimpleScene ? 'Simple 3D View' : 'Interactive 3D Portfolio'}
         </p>
         {useSimpleScene && (
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#ff6b6b' }}>
@@ -133,8 +122,40 @@ function App() {
           </p>
         )}
       </div>
-      )
     </div>
+  );
+
+  if (loading) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#87CEEB',
+        color: 'white',
+        fontSize: '18px'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  return (
+    <Router>
+      <div className="App">
+        <Analytics />
+        
+        <Routes>
+          {/* 3D Portfolio Route */}
+          <Route path="/" element={<PortfolioScene />} />
+          
+          {/* Projects Showcase Route */}
+          <Route path="/projects" element={<ProjectsShowcase />} />
+        </Routes>
+      </div>
+    </Router>
   )
 }
 

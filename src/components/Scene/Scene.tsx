@@ -17,6 +17,7 @@ import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
 import { CollisionProvider } from '../../context/CollisionContext'
 import CollisionDebug from '../Debug/CollisionDebug'
+import MenuButton from '../UI/MenuButton'
 
 interface SceneProps {
   careerPoints: CareerPoint[]
@@ -259,6 +260,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         position: 'relative',
         touchAction: 'none'
       }}>
+        <MenuButton/>
         <Canvas
           camera={{
             position: [9, 1, 19],
