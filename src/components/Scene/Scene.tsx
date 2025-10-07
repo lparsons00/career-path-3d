@@ -9,13 +9,13 @@ import MovementController from '../Character/MovementController'
 import CareerPopup from '../UI/CareerPopup'
 import ControlsHelp from '../UI/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
-import GLBScene from './GLBScene'
+import GoldenPath from '../Path/GoldenPath'
+import GLTFScene from '../Scene/GLTFScene' // Changed from GLBScene
 import * as THREE from 'three'
 import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
 import { CollisionProvider } from '../../context/CollisionContext'
 import CollisionDebug from '../Debug/CollisionDebug'
-import VercelDebug from '../Debug/VercelDebug'
 
 interface SceneProps {
   careerPoints: CareerPoint[]
@@ -24,16 +24,16 @@ interface SceneProps {
 
 const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9, 1, 18])
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([-55, 0, -22])
   const [isMoving, setIsMoving] = useState(false)
   const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
-  const [glbFailed, setGlbFailed] = useState(false)
+  const [glbFailed, setGlbFailed] = useState(false) // Note: keeping the same state name for consistency
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>(playerPosition)
 
   // Debug mode for collision boxes - set to true to see collision boxes
-  const debugMode = true
+  const debugMode = false
 
   useEffect(() => {
     const checkWebGL = () => {
@@ -84,8 +84,12 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   }, [])
 
   const handleGLBFailure = useCallback(() => {
-    logger.error('Scene', 'GLB loading failed, will use fallback geometry')
-    setGlbFailed(true)
+    logger.error('Scene', 'GLTF loading failed after all attempts', { 
+      gltfPath: '/models/town/town.gltf',
+      currentOrigin: window.location.origin,
+      userAgent: navigator.userAgent
+    })
+    setGlbFailed(true) // Note: keeping the same state name for consistency
     onGLBFailure?.()
   }, [onGLBFailure])
 
@@ -93,7 +97,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
   const handleCanvasCreated = useCallback(({ camera, scene }: { camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
-      camera.lookAt(-1, 1, 16)
+      camera.lookAt(0, 0, 0)
       
       if ('updateProjectionMatrix' in camera && typeof (camera as any).updateProjectionMatrix === 'function') {
         (camera as any).updateProjectionMatrix();
@@ -122,6 +126,24 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     
     logger.error('Scene', 'Canvas creation failed', { error: errorMessage })
     setError(`Canvas error: ${errorMessage}`)
+  }, [])
+
+  // Temporary debug for GLTF loading
+  useEffect(() => {
+    // Test if GLTF file is accessible
+    fetch('/models/town/town.gltf')
+      .then(response => {
+        console.log('GLTF Response status:', response.status);
+        console.log('GLTF Response ok:', response.ok);
+        console.log('GLTF Content-Type:', response.headers.get('content-type'));
+        return response.text();
+      })
+      .then(text => {
+        console.log('GLTF first 200 chars:', text.substring(0, 200));
+      })
+      .catch(error => {
+        console.error('GLTF Fetch error:', error);
+      });
   }, [])
 
   if (webglSupported === false) {
@@ -172,11 +194,10 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         position: 'relative',
         touchAction: 'none'
       }}>
-        <VercelDebug />
         <Canvas
           camera={{
             position: [-55, 25, -22],
-            fov: 58,
+            fov: 50,
             far: 10000,
             near: 0.1
           }}
@@ -200,17 +221,24 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             {/* Camera that follows player */}
             <FollowCamera target={cameraTarget} />
 
-            {/* Only try to load GLB if it hasn't failed before */}
+            {/* Only try to load GLTF if it hasn't failed before */}
             {!glbFailed ? (
-              <GLBScene 
-                url="/models/town.glb" 
+              <GLTFScene 
+                url="/models/town/town.gltf" // Changed from .glb to .gltf
                 position={[0, 0, 0]}
                 scale={1}
                 onError={handleGLBFailure}
               />
             ) : (
-              // Fallback geometry when GLB fails
+              // Fallback geometry when GLTF fails
               <group>
+                {/* Ground plane */}
+                <mesh position={[0, -1, 0]} receiveShadow>
+                  <planeGeometry args={[100, 100]} />
+                  <meshStandardMaterial color="#2d5a27" />
+                </mesh>
+                
+                {/* Main building */}
                 <mesh position={[0, 0, 0]}>
                   <boxGeometry args={[10, 2, 10]} />
                   <meshStandardMaterial color="#8B4513" />
@@ -219,6 +247,20 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
                   <boxGeometry args={[4, 2, 4]} />
                   <meshStandardMaterial color="#CD853F" />
                 </mesh>
+                
+                {/* Additional environment elements */}
+                <mesh position={[15, 1, 5]}>
+                  <boxGeometry args={[3, 2, 3]} />
+                  <meshStandardMaterial color="#a0522d" />
+                </mesh>
+                <mesh position={[-10, 1, -8]}>
+                  <boxGeometry args={[4, 2, 4]} />
+                  <meshStandardMaterial color="#8b7355" />
+                </mesh>
+                <mesh position={[8, 0.5, -15]}>
+                  <cylinderGeometry args={[1, 1, 3, 8]} />
+                  <meshStandardMaterial color="#228B22" />
+                </mesh>
               </group>
             )}
 
@@ -226,6 +268,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             <directionalLight 
               position={[20, 30, 10]}
               intensity={0.8}
+              castShadow
             />
             
             <Sky 
@@ -235,6 +278,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
               azimuth={0.25}
             />
 
+            <GoldenPath points={careerPoints} />
             <PathPoints 
               points={careerPoints} 
               onPointClick={handlePointClick}
@@ -250,7 +294,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
               onPositionChange={setPlayerPosition}
               onMovingChange={setIsMoving}
               careerPoints={careerPoints}
-              playerPosition={playerPosition} // Pass current position
+              playerPosition={playerPosition}
             />
 
             {/* Keep OrbitControls as fallback for manual camera control */}
