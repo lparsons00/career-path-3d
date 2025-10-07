@@ -75,30 +75,30 @@ export const createGoldenPath = (): CareerPoint[] => {
 
   // Add hobby nodes on either side of the golden path
   const hobbyPoints: CareerPoint[] = [
-    {
-      id: 6,
-      title: "Spotify",
-      year: "Always",
-      description: "Music enthusiast with diverse tastes. Always coding with a soundtrack!",
-      position: [-18, 0, -18.5],
-      type: "passion",
-      icon: "🎵",
-      color: "#3b82f6",
-      skills: ["Various Genres", "Playlist Curation", "Live Music"],
-      link: "https://open.spotify.com"
-    },
-    {
-      id: 7,
-      title: "Strava",
-      year: "Active",
-      description: "Regular runner and fitness tracker. Staying active for better coding!",
-      position: [18.5, 0, -18.5],
-      type: "passion",
-      icon: "🏃",
-      color: "#3b82f6", 
-      skills: ["Running", "Cycling", "Fitness Tracking"],
-      link: "https://www.strava.com"
-    },
+    // {
+    //   id: 6,
+    //   title: "Spotify",
+    //   year: "Always",
+    //   description: "Music enthusiast with diverse tastes. Always coding with a soundtrack!",
+    //   position: [-18, 0, -18.5],
+    //   type: "passion",
+    //   icon: "🎵",
+    //   color: "#3b82f6",
+    //   skills: ["Various Genres", "Playlist Curation", "Live Music"],
+    //   link: "https://open.spotify.com"
+    // },
+    // {
+    //   id: 7,
+    //   title: "Strava",
+    //   year: "Active",
+    //   description: "Regular runner and fitness tracker. Staying active for better coding!",
+    //   position: [18.5, 0, -18.5],
+    //   type: "passion",
+    //   icon: "🏃",
+    //   color: "#3b82f6", 
+    //   skills: ["Running", "Cycling", "Fitness Tracking"],
+    //   link: "https://www.strava.com"
+    // },
     {
       id: 8,
       title: "GitHub Link",
