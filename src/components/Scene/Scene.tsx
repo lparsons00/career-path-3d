@@ -9,10 +9,12 @@ import MovementController from '../Character/MovementController'
 import CareerPopup from '../UI/CareerPopup'
 import ControlsHelp from '../UI/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
-import GoldenPath from '../Path/GoldenPath'
 import GLBScene from './GLBScene'
 import * as THREE from 'three'
 import { logger } from '../utils/logger'
+import FollowCamera from '../Camera/FollowCamera'
+import { CollisionProvider } from '../../context/CollisionContext'
+import CollisionDebug from '../Debug/CollisionDebug'
 
 interface SceneProps {
   careerPoints: CareerPoint[]
@@ -21,12 +23,16 @@ interface SceneProps {
 
 const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([-55, 0, -22])
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9, 1, 18])
   const [isMoving, setIsMoving] = useState(false)
   const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
   const [glbFailed, setGlbFailed] = useState(false)
+  const [cameraTarget, setCameraTarget] = useState<[number, number, number]>(playerPosition)
+
+  // Debug mode for collision boxes - set to true to see collision boxes
+  const debugMode = true
 
   useEffect(() => {
     const checkWebGL = () => {
@@ -59,6 +65,11 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     })
   }, [careerPoints.length, webglSupported])
 
+  // Update camera target when player moves
+  useEffect(() => {
+    setCameraTarget(playerPosition)
+  }, [playerPosition])
+
   const handlePointClick = useCallback((point: CareerPoint) => {
     logger.info('Scene', 'Career point clicked', { 
       pointId: point.id, 
@@ -81,7 +92,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
   const handleCanvasCreated = useCallback(({ camera, scene }: { camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
-      camera.lookAt(0, 0, 0)
+      camera.lookAt(-1, 1, 16)
       
       if ('updateProjectionMatrix' in camera && typeof (camera as any).updateProjectionMatrix === 'function') {
         (camera as any).updateProjectionMatrix();
@@ -153,109 +164,118 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   }
 
   return (
-    <div style={{ 
-      width: '100%', 
-      height: '100%', 
-      position: 'relative',
-      touchAction: 'none'
-    }}>
-      <Canvas
-        camera={{
-          position: [-230, 130, -130],
-          fov: 50,
-          far: 10000,
-          near: 0.1
-        }}
-        onCreated={handleCanvasCreated}
-        onError={handleCanvasError}
-        gl={{
-          antialias: false, // Disable for performance
-          alpha: false,
-          powerPreference: 'default', // Avoid high-performance mode
-          preserveDrawingBuffer: false
-        }}
-        shadows={false} // Disable shadows for performance
-        dpr={1} // Fixed DPR
-      >
-        <color attach="background" args={['#87CEEB']} />
-        
-        <Suspense fallback={null}>
-          {/* Only try to load GLB if it hasn't failed before */}
-          {!glbFailed ? (
-            <GLBScene 
-              url="/models/town/town.glb" 
-              position={[0, 0, 0]}
-              scale={1}
-              onError={handleGLBFailure}
+    <CollisionProvider debug={debugMode}>
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        position: 'relative',
+        touchAction: 'none'
+      }}>
+        <Canvas
+          camera={{
+            position: [-55, 25, -22],
+            fov: 58,
+            far: 10000,
+            near: 0.1
+          }}
+          onCreated={handleCanvasCreated}
+          onError={handleCanvasError}
+          gl={{
+            antialias: false,
+            alpha: false,
+            powerPreference: 'default',
+            preserveDrawingBuffer: false
+          }}
+          shadows={false}
+          dpr={1}
+        >
+          <color attach="background" args={['#87CEEB']} />
+          
+          <Suspense fallback={null}>
+            {/* Collision debug visualization - shows collision boxes when debugMode is true */}
+            {debugMode && <CollisionDebug />}
+
+            {/* Camera that follows player */}
+            <FollowCamera target={cameraTarget} />
+
+            {/* Only try to load GLB if it hasn't failed before */}
+            {!glbFailed ? (
+              <GLBScene 
+                url="/models/town/town.glb" 
+                position={[0, 0, 0]}
+                scale={1}
+                onError={handleGLBFailure}
+              />
+            ) : (
+              // Fallback geometry when GLB fails
+              <group>
+                <mesh position={[0, 0, 0]}>
+                  <boxGeometry args={[10, 2, 10]} />
+                  <meshStandardMaterial color="#8B4513" />
+                </mesh>
+                <mesh position={[0, 1, 0]}>
+                  <boxGeometry args={[4, 2, 4]} />
+                  <meshStandardMaterial color="#CD853F" />
+                </mesh>
+              </group>
+            )}
+
+            <ambientLight intensity={0.6} />
+            <directionalLight 
+              position={[20, 30, 10]}
+              intensity={0.8}
             />
-          ) : (
-            // Fallback geometry when GLB fails
-            <group>
-              <mesh position={[0, 0, 0]}>
-                <boxGeometry args={[10, 2, 10]} />
-                <meshStandardMaterial color="#8B4513" />
-              </mesh>
-              <mesh position={[0, 1, 0]}>
-                <boxGeometry args={[4, 2, 4]} />
-                <meshStandardMaterial color="#CD853F" />
-              </mesh>
-            </group>
-          )}
+            
+            <Sky 
+              distance={100000}
+              sunPosition={[100, 20, 100]}
+              inclination={0.3}
+              azimuth={0.25}
+            />
 
-          <ambientLight intensity={0.6} />
-          <directionalLight 
-            position={[20, 30, 10]}
-            intensity={0.8}
-          />
-          
-          <Sky 
-            distance={100000}
-            sunPosition={[100, 20, 100]}
-            inclination={0.3}
-            azimuth={0.25}
-          />
+            <PathPoints 
+              points={careerPoints} 
+              onPointClick={handlePointClick}
+              playerPosition={playerPosition}
+            />
+            
+            <PlayerCharacter 
+              position={playerPosition}
+              isMoving={isMoving}
+            />
+            
+            <MovementController
+              onPositionChange={setPlayerPosition}
+              onMovingChange={setIsMoving}
+              careerPoints={careerPoints}
+              playerPosition={playerPosition} // Pass current position
+            />
 
-          <GoldenPath points={careerPoints} />
-          <PathPoints 
-            points={careerPoints} 
-            onPointClick={handlePointClick}
-            playerPosition={playerPosition}
-          />
-          
-          <PlayerCharacter 
-            position={playerPosition}
-            isMoving={isMoving}
-          />
-          
-          <MovementController
-            onPositionChange={setPlayerPosition}
-            onMovingChange={setIsMoving}
-            careerPoints={careerPoints}
-          />
+            {/* Keep OrbitControls as fallback for manual camera control */}
+            <OrbitControls
+              enableZoom={true}
+              enablePan={!mobile}
+              enableRotate={true}
+              minDistance={5}
+              maxDistance={100}
+              target={new THREE.Vector3(...cameraTarget)}
+              rotateSpeed={0.3}
+            />
 
-          <OrbitControls
-            enableZoom={true}
-            enablePan={!mobile}
-            enableRotate={true}
-            minDistance={5}
-            maxDistance={100}
-            target={new THREE.Vector3(...playerPosition)}
-            rotateSpeed={0.3}
+            <Preload all />
+          </Suspense>
+        </Canvas>
+
+        {selectedPoint && (
+          <CareerPopup 
+            point={selectedPoint} 
+            onClose={handleClosePopup} 
           />
+        )}
 
-          <Preload all />
-        </Suspense>
-      </Canvas>
-
-      {selectedPoint && (
-        <CareerPopup 
-          point={selectedPoint} 
-          onClose={handleClosePopup} 
-        />
-      )}
-
-      {!mobile && <ControlsHelp />}
-    </div>
+        {!mobile && <ControlsHelp />}
+      </div>
+    </CollisionProvider>
   )
 }
 

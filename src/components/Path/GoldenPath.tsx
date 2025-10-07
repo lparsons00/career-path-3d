@@ -9,7 +9,7 @@ const GoldenPath: React.FC<GoldenPathProps> = ({ points }) => {
   // Filter to only include career-related points (exclude hobby nodes)
   const careerPoints = useMemo(() => {
     return points.filter(point => 
-      point.type === 'career' || point.type === 'education' || point.type === 'passion' || point.type === 'social'
+      point.type === 'career'
     )
   }, [points])
 
@@ -48,7 +48,7 @@ const GoldenPath: React.FC<GoldenPathProps> = ({ points }) => {
               position={midPoint as [number, number, number]} 
               rotation={[0, -angle, 0]}
             >
-              <boxGeometry args={[distance, 0.1, 0.3]} />
+              <boxGeometry args={[distance, 0.1, 0.4]} />
               <meshStandardMaterial 
                 color="#FFD700" 
                 emissive="#FFA500"

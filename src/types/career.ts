@@ -1,18 +1,22 @@
+// src/types/career.ts
 export interface CareerPoint {
-  id: number
-  title: string
-  year: string
-  description: string
-  subtitle?: string
-  position: [number, number, number]
-  type: 'career' | 'education' | 'passion' | 'social' | 'hobby'
-  icon: string
-  color: string
-  skills?: string[]
-  achievements?: string[]
-  link?: string
+  id: number;
+  title: string;
+  subtitle?: string;
+  year: string;
+  description: string;
+  position: [number, number, number];
+  type: "career" | "passion" | "social" | "fitness";
+  icon: string;
+  color: string;
+  skills: string[];
+  link?: string;
 }
 
-export interface CareerData {
-  points: CareerPoint[]
+export interface MovementState {
+  position: [number, number, number];
+  targetPosition: [number, number, number] | null;
+  isMoving: boolean;
+  direction: number;
 }
+

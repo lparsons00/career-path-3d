@@ -6,7 +6,7 @@ interface CareerPopupProps {
 }
 
 const CareerPopup: React.FC<CareerPopupProps> = ({ point, onClose }) => {
-  const isHobby = point.type === 'hobby'
+  const isHobby = point.type === 'passion'
   const isSocial = point.type === 'social'
 
   return (

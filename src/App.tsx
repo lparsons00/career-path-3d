@@ -122,10 +122,10 @@ function App() {
         fontFamily: 'Arial, sans-serif'
       }}>
         <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>
-          Luke's Interactive Portfolio
+          Luke's Portfolio
         </h2>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
-          {useSimpleScene ? 'Simple 3D View' : 'Explore my career journey in 3D'}
+          {useSimpleScene ? 'Simple 3D View' : ''}
         </p>
         {useSimpleScene && (
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#ff6b6b' }}>
@@ -133,58 +133,7 @@ function App() {
           </p>
         )}
       </div>
-
-      {/* Debug controls */}
-      {canDebug && (
-        <div style={{
-          position: 'absolute',
-          bottom: '20px',
-          left: '20px',
-          background: 'rgba(0,0,0,0.9)',
-          color: 'white',
-          padding: '15px',
-          borderRadius: '8px',
-          zIndex: 1000,
-          fontSize: '14px'
-        }}>
-          <button 
-            onClick={() => setUseSimpleScene(!useSimpleScene)}
-            style={{ 
-              padding: '8px 12px', 
-              marginBottom: '10px',
-              background: '#007acc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {useSimpleScene ? 'Try Full Scene' : 'Use Simple Scene'}
-          </button>
-          <button 
-            onClick={() => {
-              localStorage.removeItem('glb_load_failed');
-              window.location.reload();
-            }}
-            style={{ 
-              padding: '8px 12px', 
-              marginBottom: '10px',
-              marginLeft: '10px',
-              background: '#ff6b6b',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            Reset GLB Cache
-          </button>
-          <div>
-            <div><strong>Mode:</strong> {useSimpleScene ? 'Simple' : 'Full'}</div>
-            <div><strong>GLB Status:</strong> {useSimpleScene ? 'Failed' : 'Attempting'}</div>
-          </div>
-        </div>
-      )}
+      )
     </div>
   )
 }

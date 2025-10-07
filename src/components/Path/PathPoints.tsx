@@ -233,14 +233,24 @@ const PathPoints: React.FC<PathPointsProps> = ({
             {/* Title label that will face camera */}
             <group ref={el => { if (el) textRefs.current[index] = el }}>
               <Text
-                position={[0, 3, 0]}
+                position={[0, 2, 0]}
+                fontSize={0.75}
+                color="white"
+                anchorX="center"
+                anchorY="bottom"
+                fillOpacity={3}
+              >
+                {point.title || `Point ${point.id}`}
+              </Text>
+              <Text
+                position={[0, 1.5, 0]}
                 fontSize={0.6}
                 color="white"
                 anchorX="center"
                 anchorY="bottom"
-                fillOpacity={0.9}
+                fillOpacity={1.75}
               >
-                {point.title || `Point ${point.id}`}
+                {point.subtitle || ``}
               </Text>
             </group>
           </group>

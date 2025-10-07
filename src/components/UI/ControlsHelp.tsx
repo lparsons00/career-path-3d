@@ -17,7 +17,7 @@ const ControlsHelp: React.FC = () => {
       border: '1px solid rgba(255, 215, 0, 0.3)'
     }}>
       <h3 style={{ marginBottom: '0.5rem', color: '#4ecdc4' }}>
-        {mobile ? '📱 Career Timeline' : '🎮 Career Timeline'}
+        {mobile ? 'Career Timeline' : 'Career Timeline'}
       </h3>
       
       {mobile ? (
@@ -37,9 +37,6 @@ const ControlsHelp: React.FC = () => {
       )}
       
       <div style={{ marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.3)', paddingTop: '10px' }}>
-        <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>
-          <strong>Timeline:</strong> Follow the golden path from early career (bottom) to recent (top)
-        </p>
         <p style={{ fontSize: '0.9rem', opacity: 0.8, marginTop: '5px' }}>
           <strong>Walk to any node</strong> and click when close to learn more
         </p>

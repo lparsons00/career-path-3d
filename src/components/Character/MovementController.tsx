@@ -1,90 +1,275 @@
-import { useEffect, useRef } from 'react'
-import { useThree, useFrame } from '@react-three/fiber'
-import { Raycaster, Vector2, Plane, Vector3 } from 'three'
+// src/components/Character/MovementController.tsx
+import { useFrame, useThree } from '@react-three/fiber'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import * as THREE from 'three'
 import type { CareerPoint } from '../../types/career'
 import { isMobile } from '../utils/pathUtils'
+import { logger } from '../utils/logger'
+import { useCollision } from '../../context/CollisionContext'
 
 interface MovementControllerProps {
   onPositionChange: (position: [number, number, number]) => void
-  onMovingChange: (moving: boolean) => void
+  onMovingChange: (isMoving: boolean) => void
   careerPoints: CareerPoint[]
+  playerPosition: [number, number, number]
 }
 
 const MovementController: React.FC<MovementControllerProps> = ({
   onPositionChange,
   onMovingChange,
-  // careerPoints
+  careerPoints,
+  playerPosition
 }) => {
-  const { camera, gl } = useThree()
-  const targetPosition = useRef<[number, number, number] | null>(null)
-  // const currentPosition = useRef<[number, number, number]>(careerPoints[0].position)
-  const currentPosition = useRef<[number, number, number]>([-55,0,-22])
-  const moveSpeed = 0.15
-  const raycaster = new Raycaster()
-  const mouse = new Vector2()
-  const groundPlane = new Plane(new Vector3(0, 1, 0), 0)
-  const mobile = isMobile()
+  const keys = useRef<Set<string>>(new Set())
+  const { getValidPosition, checkCollision } = useCollision()
+  const currentPosition = useRef<[number, number, number]>(playerPosition)
+  const { raycaster, mouse, camera, gl } = useThree()
+  
+  // Click-to-move state
+  const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null)
+  const isMovingToTarget = useRef(false)
 
-  const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-    if (mobile) {
-      event.preventDefault()
+  // Update ref when position changes
+  useEffect(() => {
+    currentPosition.current = playerPosition
+  }, [playerPosition])
+
+  const moveSpeed = 0.3
+  const playerRadius = 0.5
+  const playerHeight = 2
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    keys.current.add(event.key.toLowerCase())
+  }, [])
+
+  const handleKeyUp = useCallback((event: KeyboardEvent) => {
+    keys.current.delete(event.key.toLowerCase())
+  }, [])
+
+  const handleTouchStart = useCallback((event: TouchEvent) => {
+    // Simple touch controls
+    const touch = event.touches[0]
+    if (touch.clientX < window.innerWidth / 2) {
+      keys.current.add('arrowleft')
+    } else {
+      keys.current.add('arrowright')
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback(() => {
+    keys.current.clear()
+  }, [])
+
+  // Click-to-move handler
+  const handleClick = useCallback((event: MouseEvent) => {
+    // Don't process clicks if we're interacting with UI elements
+    if ((event.target as HTMLElement).closest('button, a, [role="button"]')) {
+      return
     }
 
-    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX
-    const clientY = 'touches' in event ? event.touches[0].clientY : event.clientY
-
+    // Calculate mouse position in normalized device coordinates (-1 to +1)
     const rect = gl.domElement.getBoundingClientRect()
-    const x = ((clientX - rect.left) / rect.width) * 2 - 1
-    const y = -((clientY - rect.top) / rect.height) * 2 + 1
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
 
-    mouse.set(x, y)
+    // Update the raycaster
     raycaster.setFromCamera(mouse, camera)
 
-    const intersectionPoint = new Vector3()
+    // Create a plane at y=0 for ground intersection
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+    const intersectionPoint = new THREE.Vector3()
+    
+    // Check intersection with ground plane
     if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-      targetPosition.current = [intersectionPoint.x, 0.5, intersectionPoint.z]
-      onMovingChange(true)
+      const newTarget: [number, number, number] = [
+        intersectionPoint.x,
+        0, // Ground level
+        intersectionPoint.z
+      ]
+
+      // Check if target position is valid (not inside collision objects)
+      if (!checkCollision(newTarget)) {
+        setTargetPosition(newTarget)
+        isMovingToTarget.current = true
+        onMovingChange(true)
+        
+        logger.info('MovementController', 'Click-to-move target set', {
+          target: newTarget,
+          currentPosition: currentPosition.current
+        })
+      } else {
+        logger.info('MovementController', 'Click target is in collision area', {
+          target: newTarget
+        })
+      }
     }
-  }
+  }, [camera, gl.domElement, mouse, raycaster, checkCollision, onMovingChange])
 
   useEffect(() => {
-    const canvas = gl.domElement
+    // Keyboard events
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
 
-    if (mobile) {
-      canvas.addEventListener('touchstart', handlePointerDown, { passive: false })
-    } else {
-      canvas.addEventListener('click', handlePointerDown)
+    // Click events for click-to-move
+    if (!isMobile()) { // Only enable click-to-move on desktop
+      gl.domElement.addEventListener('click', handleClick)
+      gl.domElement.style.cursor = 'pointer' // Show pointer cursor to indicate clickable
+    }
+
+    // Touch events for mobile
+    if (isMobile()) {
+      window.addEventListener('touchstart', handleTouchStart)
+      window.addEventListener('touchend', handleTouchEnd)
+      window.addEventListener('touchcancel', handleTouchEnd)
     }
 
     return () => {
-      if (mobile) {
-        canvas.removeEventListener('touchstart', handlePointerDown)
-      } else {
-        canvas.removeEventListener('click', handlePointerDown)
-      }
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      gl.domElement.removeEventListener('click', handleClick)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
+      window.removeEventListener('touchcancel', handleTouchEnd)
     }
-  }, [gl.domElement, camera, mobile])
+  }, [handleKeyDown, handleKeyUp, handleClick, handleTouchStart, handleTouchEnd, gl.domElement])
 
-  useFrame(() => {
-    if (targetPosition.current) {
-      const dx = targetPosition.current[0] - currentPosition.current[0]
-      const dz = targetPosition.current[2] - currentPosition.current[2]
+  useFrame((_, delta) => {
+    const currentKeys = keys.current
+    let isMoving = false
+
+    // Handle click-to-move movement
+    if (isMovingToTarget.current && targetPosition) {
+      const [targetX, targetY, targetZ] = targetPosition
+      const [currentX, currentY, currentZ] = currentPosition.current
+      
+      // Calculate direction to target
+      const dx = targetX - currentX
+      const dz = targetZ - currentZ
       const distance = Math.sqrt(dx * dx + dz * dz)
 
-      if (distance > moveSpeed) {
-        currentPosition.current[0] += (dx / distance) * moveSpeed
-        currentPosition.current[2] += (dz / distance) * moveSpeed
-        onPositionChange([...currentPosition.current])
-      } else {
-        currentPosition.current = [...targetPosition.current]
-        onPositionChange([...currentPosition.current])
-        targetPosition.current = null
+      // If we're close enough to target, stop moving
+      if (distance < 0.5) {
+        isMovingToTarget.current = false
+        setTargetPosition(null)
         onMovingChange(false)
+        logger.info('MovementController', 'Reached click-to-move target', {
+          target: targetPosition,
+          finalPosition: currentPosition.current
+        })
+      } else {
+        // Calculate movement for this frame
+        const moveDistance = moveSpeed * delta * 60
+        const ratio = Math.min(moveDistance / distance, 1)
+        
+        const desiredPosition: [number, number, number] = [
+          currentX + dx * ratio,
+          currentY,
+          currentZ + dz * ratio
+        ]
+
+        // Check collision for the desired position
+        if (!checkCollision(desiredPosition)) {
+          onPositionChange(desiredPosition)
+          isMoving = true
+        } else {
+          // If we hit a collision, stop click-to-move
+          isMovingToTarget.current = false
+          setTargetPosition(null)
+          onMovingChange(false)
+          logger.info('MovementController', 'Click-to-move blocked by collision', {
+            target: targetPosition,
+            blockedAt: desiredPosition
+          })
+        }
+      }
+    }
+
+    // Handle keyboard movement (prioritized over click-to-move)
+    if (currentKeys.size > 0) {
+      // If keyboard keys are pressed, cancel click-to-move
+      if (isMovingToTarget.current) {
+        isMovingToTarget.current = false
+        setTargetPosition(null)
+      }
+
+      // Calculate desired movement
+      let moveX = 0
+      let moveZ = 0
+
+      if (currentKeys.has('arrowup') || currentKeys.has('w')) {
+        moveZ -= moveSpeed * delta * 60
+        isMoving = true
+      }
+      if (currentKeys.has('arrowdown') || currentKeys.has('s')) {
+        moveZ += moveSpeed * delta * 60
+        isMoving = true
+      }
+      if (currentKeys.has('arrowleft') || currentKeys.has('a')) {
+        moveX -= moveSpeed * delta * 60
+        isMoving = true
+      }
+      if (currentKeys.has('arrowright') || currentKeys.has('d')) {
+        moveX += moveSpeed * delta * 60
+        isMoving = true
+      }
+
+      // Update moving state
+      onMovingChange(isMoving)
+
+      // If moving, calculate new position with collision detection
+      if (isMoving) {
+        const desiredPosition: [number, number, number] = [
+          currentPosition.current[0] + moveX,
+          currentPosition.current[1],
+          currentPosition.current[2] + moveZ
+        ]
+
+        // Check if desired position would cause collision
+        if (!checkCollision(desiredPosition)) {
+          // No collision, move to desired position
+          onPositionChange(desiredPosition)
+        } else {
+          // Try sliding along X axis only
+          const slideX: [number, number, number] = [
+            currentPosition.current[0] + moveX,
+            currentPosition.current[1],
+            currentPosition.current[2]
+          ]
+          if (!checkCollision(slideX)) {
+            onPositionChange(slideX)
+            isMoving = true
+          } else {
+            // Try sliding along Z axis only
+            const slideZ: [number, number, number] = [
+              currentPosition.current[0],
+              currentPosition.current[1],
+              currentPosition.current[2] + moveZ
+            ]
+            if (!checkCollision(slideZ)) {
+              onPositionChange(slideZ)
+              isMoving = true
+            }
+            // If both slides fail, don't move (character stops at obstacle)
+          }
+        }
       }
     }
   })
 
-  return null
+  // Optional: Visual indicator for target position (debug)
+  // You can remove this if you don't want visual feedback
+  const showTargetIndicator = targetPosition && isMovingToTarget.current
+
+  return (
+    <>
+      {showTargetIndicator && (
+        <mesh position={targetPosition}>
+          <ringGeometry args={[0.3, 0.5, 16]} />
+          <meshBasicMaterial color="#00ff00" transparent opacity={0.5} />
+        </mesh>
+      )}
+    </>
+  )
 }
 
 export default MovementController
