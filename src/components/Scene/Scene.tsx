@@ -203,7 +203,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             {/* Only try to load GLB if it hasn't failed before */}
             {!glbFailed ? (
               <GLBScene 
-                url="/models/town/town.glb" 
+                url="/models/town.glb" 
                 position={[0, 0, 0]}
                 scale={1}
                 onError={handleGLBFailure}

@@ -20,8 +20,8 @@ const GLBScene: React.FC<GLBSceneProps> = ({ url, position, scale, onError }) =>
   const urlStrategies = [
     url, // Original path
     window.location.origin + url, // Absolute URL
-    './models/town/town.glb', // Relative path from root
-    '/career-path-3d/models/town/town.glb', // If deployed to subpath
+    './models/town.glb', // Relative path from root
+    '/career-path-3d/models/town.glb', // If deployed to subpath
   ];
 
   const currentUrl = urlStrategies[attemptedUrls.length] || url;
@@ -115,6 +115,6 @@ const GLBScene: React.FC<GLBSceneProps> = ({ url, position, scale, onError }) =>
 };
 
 // Preload for better performance
-useGLTF.preload('/models/town/town.glb');
+useGLTF.preload('/models/town.glb');
 
 export default GLBScene;

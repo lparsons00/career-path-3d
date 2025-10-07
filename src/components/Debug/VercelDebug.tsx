@@ -45,7 +45,7 @@ const VercelDebug: React.FC = () => {
     protocol: '',
     origin: '',
     pathname: '',
-    glbUrl: '/models/town/town.glb',
+    glbUrl: '/models/town.glb',
     absoluteGlbUrl: '',
     userAgent: '',
     webglSupported: false,
@@ -63,20 +63,20 @@ const VercelDebug: React.FC = () => {
         origin: window.location.origin,
         pathname: window.location.pathname,
         href: window.location.href,
-        glbUrl: '/models/town/town.glb',
-        absoluteGlbUrl: window.location.origin + '/models/town/town.glb',
+        glbUrl: '/models/town.glb',
+        absoluteGlbUrl: window.location.origin + '/models/town.glb',
         userAgent: navigator.userAgent,
         webglSupported: !!window.WebGLRenderingContext,
       };
 
       // Test if GLB file exists
       try {
-        const response = await fetch('/models/town/town.glb', { method: 'HEAD' });
+        const response = await fetch('/models/town.glb', { method: 'HEAD' });
         info.glbHeadStatus = response.status;
         info.glbHeadOk = response.ok;
         
         if (response.ok) {
-          const blobResponse = await fetch('/models/town/town.glb');
+          const blobResponse = await fetch('/models/town.glb');
           info.glbBlobSize = (await blobResponse.blob()).size;
           info.glbBlobType = blobResponse.headers.get('content-type');
         }
