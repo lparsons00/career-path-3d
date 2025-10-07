@@ -23,16 +23,10 @@ const ControlsHelp: React.FC = () => {
       {mobile ? (
         <>
           <p>• <strong>Tap anywhere</strong> to move character</p>
-          <p>• <strong>Drag with one finger</strong> to rotate view</p>
-          <p>• <strong>Drag with two fingers</strong> to pan</p>
-          <p>• <strong>Pinch</strong> to zoom in/out</p>
         </>
       ) : (
         <>
           <p>• <strong>Click anywhere</strong> to move character</p>
-          <p>• <strong>Left-click + drag</strong> to rotate view</p>
-          <p>• <strong>Right-click + drag</strong> to pan</p>
-          <p>• <strong>Scroll</strong> to zoom in/out</p>
         </>
       )}
       

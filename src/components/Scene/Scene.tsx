@@ -24,7 +24,7 @@ interface SceneProps {
 
 const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
-  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([-55, 0, -22])
+  const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9 , 1, 19])
   const [isMoving, setIsMoving] = useState(false)
   const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -196,8 +196,8 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       }}>
         <Canvas
           camera={{
-            position: [-55, 25, -22],
-            fov: 50,
+            position: [9 , 1, 19],
+            fov: 60,
             far: 10000,
             near: 0.1
           }}
