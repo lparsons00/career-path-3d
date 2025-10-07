@@ -25,7 +25,7 @@ const MovementController: React.FC<MovementControllerProps> = ({
   const currentPosition = useRef<[number, number, number]>(playerPosition)
   const { raycaster, mouse, camera, gl } = useThree()
   
-  // Click-to-move state
+  // Click/tap-to-move state
   const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null)
   const isMovingToTarget = useRef(false)
 
@@ -46,31 +46,13 @@ const MovementController: React.FC<MovementControllerProps> = ({
     keys.current.delete(event.key.toLowerCase())
   }, [])
 
-  const handleTouchStart = useCallback((event: TouchEvent) => {
-    // Simple touch controls
-    const touch = event.touches[0]
-    if (touch.clientX < window.innerWidth / 2) {
-      keys.current.add('arrowleft')
-    } else {
-      keys.current.add('arrowright')
-    }
-  }, [])
-
-  const handleTouchEnd = useCallback(() => {
-    keys.current.clear()
-  }, [])
-
-  // Click-to-move handler
-  const handleClick = useCallback((event: MouseEvent) => {
-    // Don't process clicks if we're interacting with UI elements
-    if ((event.target as HTMLElement).closest('button, a, [role="button"]')) {
-      return
-    }
-
-    // Calculate mouse position in normalized device coordinates (-1 to +1)
+  // Unified pointer handler for both mouse and touch
+  const handlePointer = useCallback((clientX: number, clientY: number) => {
     const rect = gl.domElement.getBoundingClientRect()
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+    
+    // Calculate normalized device coordinates (-1 to +1)
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
 
     // Update the raycaster
     raycaster.setFromCamera(mouse, camera)
@@ -93,51 +75,76 @@ const MovementController: React.FC<MovementControllerProps> = ({
         isMovingToTarget.current = true
         onMovingChange(true)
         
-        logger.info('MovementController', 'Click-to-move target set', {
+        logger.info('MovementController', 'Tap-to-move target set', {
           target: newTarget,
-          currentPosition: currentPosition.current
+          currentPosition: currentPosition.current,
+          isMobile: isMobile()
         })
       } else {
-        logger.info('MovementController', 'Click target is in collision area', {
+        logger.info('MovementController', 'Tap target is in collision area', {
           target: newTarget
         })
       }
     }
   }, [camera, gl.domElement, mouse, raycaster, checkCollision, onMovingChange])
 
+  // Mouse click handler
+  const handleClick = useCallback((event: MouseEvent) => {
+    // Don't process clicks if we're interacting with UI elements
+    if ((event.target as HTMLElement).closest('button, a, [role="button"]')) {
+      return
+    }
+    handlePointer(event.clientX, event.clientY)
+  }, [handlePointer])
+
+  // Touch handler for mobile
+  const handleTouch = useCallback((event: TouchEvent) => {
+    // Prevent default to avoid scrolling and other touch behaviors
+    event.preventDefault()
+    
+    // Only handle single touches for movement
+    if (event.touches.length === 1) {
+      const touch = event.touches[0]
+      handlePointer(touch.clientX, touch.clientY)
+    }
+  }, [handlePointer])
+
+  // Handle touch end
+  const handleTouchEnd = useCallback(() => {
+    // Don't clear keys for tap-to-move, only for the old left/right controls
+  }, [])
+
   useEffect(() => {
     // Keyboard events
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
 
-    // Click events for click-to-move
-    if (!isMobile()) { // Only enable click-to-move on desktop
-      gl.domElement.addEventListener('click', handleClick)
-      gl.domElement.style.cursor = 'pointer' // Show pointer cursor to indicate clickable
-    }
-
-    // Touch events for mobile
+    // Pointer events based on device type
     if (isMobile()) {
-      window.addEventListener('touchstart', handleTouchStart)
-      window.addEventListener('touchend', handleTouchEnd)
-      window.addEventListener('touchcancel', handleTouchEnd)
+      // Mobile: use touch events for tap-to-move
+      gl.domElement.addEventListener('touchstart', handleTouch, { passive: false })
+      gl.domElement.addEventListener('touchend', handleTouchEnd)
+      gl.domElement.style.touchAction = 'none' // Prevent browser touch actions
+    } else {
+      // Desktop: use mouse click for click-to-move
+      gl.domElement.addEventListener('click', handleClick)
+      gl.domElement.style.cursor = 'pointer' // Show pointer cursor
     }
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
       gl.domElement.removeEventListener('click', handleClick)
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchend', handleTouchEnd)
-      window.removeEventListener('touchcancel', handleTouchEnd)
+      gl.domElement.removeEventListener('touchstart', handleTouch)
+      gl.domElement.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [handleKeyDown, handleKeyUp, handleClick, handleTouchStart, handleTouchEnd, gl.domElement])
+  }, [handleKeyDown, handleKeyUp, handleClick, handleTouch, handleTouchEnd, gl.domElement])
 
   useFrame((_, delta) => {
     const currentKeys = keys.current
     let isMoving = false
 
-    // Handle click-to-move movement
+    // Handle tap/click-to-move movement
     if (isMovingToTarget.current && targetPosition) {
       const [targetX, targetY, targetZ] = targetPosition
       const [currentX, currentY, currentZ] = currentPosition.current
@@ -152,7 +159,7 @@ const MovementController: React.FC<MovementControllerProps> = ({
         isMovingToTarget.current = false
         setTargetPosition(null)
         onMovingChange(false)
-        logger.info('MovementController', 'Reached click-to-move target', {
+        logger.info('MovementController', 'Reached tap-to-move target', {
           target: targetPosition,
           finalPosition: currentPosition.current
         })
@@ -172,11 +179,11 @@ const MovementController: React.FC<MovementControllerProps> = ({
           onPositionChange(desiredPosition)
           isMoving = true
         } else {
-          // If we hit a collision, stop click-to-move
+          // If we hit a collision, stop tap-to-move
           isMovingToTarget.current = false
           setTargetPosition(null)
           onMovingChange(false)
-          logger.info('MovementController', 'Click-to-move blocked by collision', {
+          logger.info('MovementController', 'Tap-to-move blocked by collision', {
             target: targetPosition,
             blockedAt: desiredPosition
           })
@@ -184,9 +191,9 @@ const MovementController: React.FC<MovementControllerProps> = ({
       }
     }
 
-    // Handle keyboard movement (prioritized over click-to-move)
+    // Handle keyboard movement (prioritized over tap-to-move)
     if (currentKeys.size > 0) {
-      // If keyboard keys are pressed, cancel click-to-move
+      // If keyboard keys are pressed, cancel tap-to-move
       if (isMovingToTarget.current) {
         isMovingToTarget.current = false
         setTargetPosition(null)
@@ -257,7 +264,6 @@ const MovementController: React.FC<MovementControllerProps> = ({
   })
 
   // Optional: Visual indicator for target position (debug)
-  // You can remove this if you don't want visual feedback
   const showTargetIndicator = targetPosition && isMovingToTarget.current
 
   return (
