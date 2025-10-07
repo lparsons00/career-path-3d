@@ -223,6 +223,7 @@ const PathPoints: React.FC<PathPointsProps> = ({
             {/* Sphere mesh with memoized material */}
             <mesh
               onClick={() => handlePointClick(point)}
+              onPointerDown={() => handlePointClick(point)}
               castShadow
               receiveShadow
               material={materials[index]}

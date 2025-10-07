@@ -23,16 +23,42 @@ const MovementController: React.FC<MovementControllerProps> = ({
   const keys = useRef<Set<string>>(new Set())
   const { getValidPosition, checkCollision } = useCollision()
   const currentPosition = useRef<[number, number, number]>(playerPosition)
-  const { raycaster, mouse, camera, gl } = useThree()
+  const { raycaster, mouse, camera, gl, scene } = useThree()
   
   // Click/tap-to-move state
   const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null)
   const isMovingToTarget = useRef(false)
 
+  // Reference to career point objects for intersection testing
+  const careerPointObjects = useRef<THREE.Object3D[]>([])
+
   // Update ref when position changes
   useEffect(() => {
     currentPosition.current = playerPosition
   }, [playerPosition])
+
+  // Find career point objects in the scene
+  useEffect(() => {
+    const findCareerPoints = () => {
+      const points: THREE.Object3D[] = []
+      scene.traverse((child) => {
+        // Look for objects that might be career points
+        // This is a heuristic - you might need to adjust based on your actual career point implementation
+        if (child.userData?.isCareerPoint || 
+            child.name?.includes('career') || 
+            child.name?.includes('point') ||
+            (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry)) {
+          points.push(child)
+        }
+      })
+      careerPointObjects.current = points
+      logger.info('MovementController', 'Found career point objects', { count: points.length })
+    }
+
+    // Wait a bit for the scene to load, then find career points
+    const timer = setTimeout(findCareerPoints, 1000)
+    return () => clearTimeout(timer)
+  }, [scene, careerPoints])
 
   const moveSpeed = 0.3
   const playerRadius = 0.5
@@ -46,8 +72,41 @@ const MovementController: React.FC<MovementControllerProps> = ({
     keys.current.delete(event.key.toLowerCase())
   }, [])
 
+  // Check if the pointer intersects with any career points
+  const checkCareerPointIntersection = useCallback((clientX: number, clientY: number): boolean => {
+    const rect = gl.domElement.getBoundingClientRect()
+    
+    // Calculate normalized device coordinates (-1 to +1)
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+    // Update the raycaster
+    raycaster.setFromCamera(mouse, camera)
+
+    // Check for intersections with career points
+    const intersects = raycaster.intersectObjects(careerPointObjects.current, true)
+    
+    if (intersects.length > 0) {
+      logger.info('MovementController', 'Career point tapped', {
+        object: intersects[0].object.name,
+        point: intersects[0].point
+      })
+      return true
+    }
+    
+    return false
+  }, [camera, gl.domElement, mouse, raycaster])
+
   // Unified pointer handler for both mouse and touch
   const handlePointer = useCallback((clientX: number, clientY: number) => {
+    // First, check if we're tapping on a career point
+    if (checkCareerPointIntersection(clientX, clientY)) {
+      // If we hit a career point, don't initiate movement
+      // The career point's own click handler will handle the interaction
+      logger.info('MovementController', 'Career point tap detected, skipping movement')
+      return
+    }
+
     const rect = gl.domElement.getBoundingClientRect()
     
     // Calculate normalized device coordinates (-1 to +1)
@@ -86,7 +145,7 @@ const MovementController: React.FC<MovementControllerProps> = ({
         })
       }
     }
-  }, [camera, gl.domElement, mouse, raycaster, checkCollision, onMovingChange])
+  }, [camera, gl.domElement, mouse, raycaster, checkCollision, onMovingChange, checkCareerPointIntersection])
 
   // Mouse click handler
   const handleClick = useCallback((event: MouseEvent) => {
