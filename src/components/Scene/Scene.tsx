@@ -11,7 +11,8 @@ import LinkedInPopup from '../UI/LinkedInPopup' // Add this import
 import ControlsHelp from '../UI/ControlsHelp'
 import { isMobile } from '../utils/pathUtils'
 import GoldenPath from '../Path/GoldenPath'
-import GLTFScene from '../Scene/GLTFScene'
+import OptimizedGLTFScene from '../Scene/OptimizedGLTFScene'
+import LoadingProgress from '../UI/LoadingProgress'
 import * as THREE from 'three'
 import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
@@ -27,10 +28,10 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9, 1, 19])
   const [isMoving, setIsMoving] = useState(false)
-  const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
   const [glbFailed, setGlbFailed] = useState(false)
+  const [showLoading, setShowLoading] = useState(true)
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>(playerPosition)
   
   // LinkedIn popup state
@@ -172,7 +173,6 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       scene.add(new THREE.AmbientLight(0xffffff, 0.4))
       
       logger.info('Scene', 'Canvas and Three.js scene initialized')
-      setSceneLoaded(true)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
       logger.error('Scene', 'Failed to initialize canvas', { error: errorMsg })
@@ -288,7 +288,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
             {/* Only try to load GLTF if it hasn't failed before */}
             {!glbFailed ? (
-              <GLTFScene 
+              <OptimizedGLTFScene 
                 url="/models/town/town.gltf"
                 position={[0, 0, 0]}
                 scale={1}
@@ -394,6 +394,13 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         />
 
         {!mobile && <ControlsHelp />}
+        
+        {/* Loading progress overlay */}
+        {showLoading && (
+          <LoadingProgress 
+            onComplete={() => setShowLoading(false)}
+          />
+        )}
       </div>
     </CollisionProvider>
   )
