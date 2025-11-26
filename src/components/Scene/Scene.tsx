@@ -41,6 +41,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
   // Debug mode for collision boxes - set to true to see collision boxes
   const debugMode = false
+  const mobile = isMobile()
 
   useEffect(() => {
     const checkWebGL = () => {
@@ -159,10 +160,68 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     onGLBFailure?.()
   }, [onGLBFailure])
 
-  const mobile = isMobile()
-
-  const handleCanvasCreated = useCallback(({ camera, scene }: { camera: THREE.Camera; scene: THREE.Scene }) => {
+  const handleCanvasCreated = useCallback(({ gl, camera, scene }: { gl: THREE.WebGLRenderer; camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
+      // Import context manager and memory monitor
+      Promise.all([
+        import('../utils/webglContextManager'),
+        import('../utils/memoryMonitor')
+      ]).then(([{ WebGLContextManager }, { MemoryMonitor }]) => {
+        // Set up WebGL context management
+        const contextManager = WebGLContextManager.getInstance();
+        const canvas = gl.domElement;
+        contextManager.initialize(canvas, gl);
+        
+        // Set up context loss recovery
+        contextManager.onContextLost(() => {
+          logger.error('Scene', 'WebGL context lost - attempting recovery');
+          setError('WebGL context lost. The scene will attempt to recover...');
+        });
+        
+        contextManager.onContextRestored(() => {
+          logger.info('Scene', 'WebGL context restored');
+          setError(null);
+          // Force re-render
+          window.location.reload();
+        });
+        
+        // Set up memory monitoring on mobile
+        if (mobile) {
+          const memoryMonitor = MemoryMonitor.getInstance();
+          memoryMonitor.startMonitoring();
+          
+          memoryMonitor.onLowMemory(() => {
+            logger.warn('Scene', 'Low memory detected - reducing quality');
+            // Could trigger quality reduction here
+          });
+        }
+      });
+      
+      // Aggressive mobile optimizations
+      if (mobile) {
+        // Limit renderer capabilities
+        gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        gl.shadowMap.enabled = false;
+        
+        // Set lower precision shaders if possible
+        const context = gl.getContext();
+        if (context) {
+          try {
+            // Check if we can use lower precision
+            const precisionFormat = context.getShaderPrecisionFormat(
+              context.VERTEX_SHADER,
+              context.MEDIUM_FLOAT
+            );
+            if (precisionFormat && precisionFormat.precision > 0) {
+              // Force medium precision shaders
+              gl.capabilities.precision = 'mediump';
+            }
+          } catch (e) {
+            // Ignore precision check errors
+          }
+        }
+      }
+      
       camera.lookAt(0, 0, 0)
       
       if ('updateProjectionMatrix' in camera && typeof (camera as any).updateProjectionMatrix === 'function') {
@@ -172,13 +231,13 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       scene.fog = new THREE.FogExp2('#87CEEB', 0.002)
       scene.add(new THREE.AmbientLight(0xffffff, 0.4))
       
-      logger.info('Scene', 'Canvas and Three.js scene initialized')
+      logger.info('Scene', 'Canvas and Three.js scene initialized', { isMobile: mobile })
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
       logger.error('Scene', 'Failed to initialize canvas', { error: errorMsg })
       setError(errorMsg)
     }
-  }, [])
+  }, [mobile])
 
   const handleCanvasError = useCallback((event: any) => {
     let errorMessage = 'Unknown canvas error';
@@ -271,11 +330,16 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
           gl={{
             antialias: false,
             alpha: false,
-            powerPreference: 'default',
-            preserveDrawingBuffer: false
+            powerPreference: mobile ? 'low-power' : 'default', // Use low-power on mobile
+            preserveDrawingBuffer: false,
+            failIfMajorPerformanceCaveat: false,
+            stencil: false, // Disable stencil buffer
+            depth: true,
+            premultipliedAlpha: false
           }}
           shadows={false}
-          dpr={1}
+          dpr={mobile ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined} // Cap DPR at 1.5 on mobile
+          frameloop={mobile ? 'demand' : 'always'} // Only render when needed on mobile
         >
           <color attach="background" args={['#87CEEB']} />
           

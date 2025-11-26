@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { logger } from '../utils/logger';
 import { isMobile } from '../utils/pathUtils';
-import { optimizeTextureForMobile, getOptimalTextureSize } from '../utils/textureOptimizer';
+// Texture optimization utilities imported but using aggressive version
+import { aggressivelyOptimizeTexture, simplifyGeometry } from '../utils/webglContextManager';
 
 interface OptimizedGLTFSceneProps {
   url: string;
@@ -67,15 +68,22 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
               child.geometry.computeVertexNormals();
             }
             
-            // Dispose of unused attributes on mobile to save memory
+            // Aggressively optimize geometry on mobile
             if (mobile) {
-              // Keep only essential attributes
+              // Simplify geometry to reduce memory
+              simplifyGeometry(child.geometry, 0.3); // Reduce by 30%
+              
+              // Dispose of unused attributes
               const keepAttributes = ['position', 'normal', 'uv'];
               Object.keys(child.geometry.attributes).forEach(key => {
                 if (!keepAttributes.includes(key)) {
                   child.geometry.deleteAttribute(key);
                 }
               });
+              
+              // Disable expensive geometry features
+              child.geometry.computeBoundingBox();
+              child.geometry.computeBoundingSphere();
             }
           }
 
@@ -88,9 +96,9 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
               textureCount++;
               const texture = material.map as THREE.Texture;
               
-              // Use texture optimizer utility
+              // Aggressively optimize textures on mobile
               if (mobile) {
-                optimizeTextureForMobile(texture);
+                aggressivelyOptimizeTexture(texture);
               } else {
                 // Desktop: higher quality
                 texture.anisotropy = 4;
@@ -110,9 +118,18 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
             
             textureMaps.forEach(texture => {
               if (mobile) {
-                optimizeTextureForMobile(texture);
+                aggressivelyOptimizeTexture(texture);
               }
             });
+            
+            // On mobile, consider removing some texture maps entirely to save memory
+            if (mobile) {
+              // Remove less critical maps
+              material.normalMap = null;
+              material.roughnessMap = null;
+              material.metalnessMap = null;
+              // Keep only base color and maybe AO
+            }
 
             // Simplify material properties on mobile
             if (mobile) {
