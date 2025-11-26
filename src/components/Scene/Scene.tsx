@@ -28,6 +28,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [selectedPoint, setSelectedPoint] = useState<CareerPoint | null>(null)
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([9, 1, 19])
   const [isMoving, setIsMoving] = useState(false)
+  const [sceneLoaded, setSceneLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
   const [glbFailed, setGlbFailed] = useState(false)
@@ -40,52 +41,16 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
   // Debug mode for collision boxes - set to true to see collision boxes
   const debugMode = false
-  const mobile = isMobile()
 
   useEffect(() => {
     const checkWebGL = () => {
       try {
         const canvas = document.createElement('canvas')
-        // Try WebGL2 first, then WebGL1, then experimental
-        const gl = canvas.getContext('webgl2', { 
-          alpha: false,
-          antialias: false,
-          powerPreference: 'default',
-          failIfMajorPerformanceCaveat: false
-        }) || canvas.getContext('webgl', { 
-          alpha: false,
-          antialias: false,
-          powerPreference: 'default',
-          failIfMajorPerformanceCaveat: false
-        }) || canvas.getContext('experimental-webgl', {
-          alpha: false,
-          antialias: false,
-          powerPreference: 'default',
-          failIfMajorPerformanceCaveat: false
-        })
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
         const supported = !!gl
-        
-        if (gl && 'createShader' in gl) {
-          // Test if context is actually usable (WebGLRenderingContext)
-          const webglContext = gl as WebGLRenderingContext
-          try {
-            const testShader = webglContext.createShader(webglContext.VERTEX_SHADER)
-            if (testShader) {
-              webglContext.deleteShader(testShader)
-            }
-          } catch (e) {
-            // Context test failed, but context exists
-            logger.warn('Scene', 'WebGL context test failed', { error: e })
-          }
-        }
-        
         setWebglSupported(supported)
         
-        logger.info('Scene', 'WebGL support check', { 
-          supported,
-          isMobile: mobile,
-          userAgent: navigator.userAgent
-        })
+        logger.info('Scene', 'WebGL support check', { supported })
 
         if (!supported) {
           setError('WebGL is not supported in your browser.')
@@ -99,7 +64,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     }
 
     checkWebGL()
-  }, [mobile])
+  }, [])
 
   useEffect(() => {
     logger.info('Scene', 'Component mounted', {
@@ -107,35 +72,6 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       webglSupported
     })
   }, [careerPoints.length, webglSupported])
-
-  // Handle WebGL context lost/restored events (common on mobile)
-  useEffect(() => {
-    const handleContextLost = (event: Event) => {
-      event.preventDefault()
-      logger.warn('Scene', 'WebGL context lost', { isMobile: mobile })
-      setError('WebGL context was lost. Please refresh the page.')
-    }
-
-    const handleContextRestored = () => {
-      logger.info('Scene', 'WebGL context restored', { isMobile: mobile })
-      setError(null)
-      // Force a re-render by checking WebGL again
-      const canvas = document.createElement('canvas')
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      if (gl) {
-        setWebglSupported(true)
-      }
-    }
-
-    // These events need to be on the window
-    window.addEventListener('webglcontextlost', handleContextLost)
-    window.addEventListener('webglcontextrestored', handleContextRestored)
-
-    return () => {
-      window.removeEventListener('webglcontextlost', handleContextLost)
-      window.removeEventListener('webglcontextrestored', handleContextRestored)
-    }
-  }, [mobile])
 
   // Update camera target when player moves
   useEffect(() => {
@@ -223,14 +159,10 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     onGLBFailure?.()
   }, [onGLBFailure])
 
-  const handleCanvasCreated = useCallback(({ gl, camera, scene }: { gl: THREE.WebGLRenderer; camera: THREE.Camera; scene: THREE.Scene }) => {
+  const mobile = isMobile()
+
+  const handleCanvasCreated = useCallback(({ camera, scene }: { camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
-      // Configure renderer for mobile
-      if (mobile) {
-        gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-        gl.shadowMap.enabled = false
-      }
-      
       camera.lookAt(0, 0, 0)
       
       if ('updateProjectionMatrix' in camera && typeof (camera as any).updateProjectionMatrix === 'function') {
@@ -240,19 +172,14 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       scene.fog = new THREE.FogExp2('#87CEEB', 0.002)
       scene.add(new THREE.AmbientLight(0xffffff, 0.4))
       
-      logger.info('Scene', 'Canvas and Three.js scene initialized', {
-        isMobile: mobile,
-        rendererInfo: {
-          vendor: gl.getContext()?.getParameter(gl.getContext()?.VENDOR),
-          renderer: gl.getContext()?.getParameter(gl.getContext()?.RENDERER)
-        }
-      })
+      logger.info('Scene', 'Canvas and Three.js scene initialized')
+      setSceneLoaded(true)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-      logger.error('Scene', 'Failed to initialize canvas', { error: errorMsg, isMobile: mobile })
+      logger.error('Scene', 'Failed to initialize canvas', { error: errorMsg })
       setError(errorMsg)
     }
-  }, [mobile])
+  }, [])
 
   const handleCanvasError = useCallback((event: any) => {
     let errorMessage = 'Unknown canvas error';
@@ -261,18 +188,11 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       errorMessage = event.message;
     } else if (event && event.type === 'webglcontextlost') {
       errorMessage = 'WebGL context was lost';
-    } else if (event && typeof event === 'object') {
-      errorMessage = event.message || event.toString();
     }
     
-    logger.error('Scene', 'Canvas creation failed', { 
-      error: errorMessage,
-      isMobile: mobile,
-      userAgent: navigator.userAgent,
-      event
-    })
+    logger.error('Scene', 'Canvas creation failed', { error: errorMessage })
     setError(`Canvas error: ${errorMessage}`)
-  }, [mobile])
+  }, [])
 
   // Remove or comment out the temporary GLTF debug
   // useEffect(() => {
@@ -351,26 +271,17 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
           onCreated={handleCanvasCreated}
           onError={handleCanvasError}
           gl={{
-            antialias: !mobile, // Disable antialiasing on mobile for better performance
+            antialias: false,
             alpha: false,
-            powerPreference: mobile ? 'high-performance' : 'default',
-            preserveDrawingBuffer: false,
-            failIfMajorPerformanceCaveat: false, // Don't fail on low-end devices
-            stencil: false, // Disable stencil buffer for better mobile performance
-            depth: true
+            powerPreference: 'default',
+            preserveDrawingBuffer: false
           }}
           shadows={false}
-          dpr={mobile ? Math.min(window.devicePixelRatio || 1, 2) : undefined} // Limit DPR on mobile to max 2 for performance
-          frameloop="always"
+          dpr={1}
         >
           <color attach="background" args={['#87CEEB']} />
           
-          <Suspense fallback={
-            <mesh>
-              <boxGeometry args={[1, 1, 1]} />
-              <meshStandardMaterial color="#888888" />
-            </mesh>
-          }>
+          <Suspense fallback={null}>
             {/* Collision debug visualization - shows collision boxes when debugMode is true */}
             {debugMode && <CollisionDebug />}
 
