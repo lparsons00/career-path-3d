@@ -353,7 +353,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             {/* Only try to load GLTF if it hasn't failed before */}
             {!glbFailed ? (
               <OptimizedGLTFScene 
-                url="/models/town/town.gltf"
+                url="/models/town/town-draco.gltf"
                 position={[0, 0, 0]}
                 scale={1}
                 onError={handleGLBFailure}
