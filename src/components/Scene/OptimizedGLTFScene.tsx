@@ -6,6 +6,7 @@ import { logger } from '../utils/logger';
 import { isMobile } from '../utils/pathUtils';
 // Texture optimization utilities imported but using aggressive version
 import { aggressivelyOptimizeTexture, simplifyGeometry } from '../utils/webglContextManager';
+import { preloadDracoDecoder } from '../utils/dracoLoader';
 
 interface OptimizedGLTFSceneProps {
   url: string;
@@ -26,6 +27,13 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
   const [optimizationComplete, setOptimizationComplete] = useState(false);
   const mobile = isMobile();
   
+  // Preload Draco decoder on mount for faster loading
+  useEffect(() => {
+    preloadDracoDecoder().catch(err => {
+      logger.warn('OptimizedGLTFScene', 'Draco decoder preload failed', { error: err });
+    });
+  }, []);
+  
   // Use drei's useProgress to track loading
   const { progress, active } = useProgress();
   
@@ -36,8 +44,10 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
     }
   }, [progress, active, onLoadProgress]);
 
-  // Use the GLTF hook with optimizations
-  const gltf = useGLTF(url, true); // true = use draco if available
+  // Use the GLTF hook with Draco compression support
+  // The second parameter enables Draco decompression if the file is compressed
+  // drei automatically handles the Draco decoder loading
+  const gltf = useGLTF(url, true); // true = use draco decoder if file is compressed
   const scene = gltf.scene;
 
   // Optimize the loaded scene for mobile

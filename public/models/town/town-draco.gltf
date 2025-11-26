@@ -1,0 +1,573 @@
+{
+  "asset": {
+    "generator": "glTF-Transform v4.2.1",
+    "version": "2.0",
+    "extras": {
+      "author": "bhaveshchalke4513v2 (https://sketchfab.com/bhaveshchalke4513v2)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/3d-models/pallet-town-70929a9e275f4ff8a323e23441dcef1e",
+      "title": "Pallet Town"
+    }
+  },
+  "accessors": [
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 5943
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 3829
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 3829,
+      "max": [
+        27.000001907348633,
+        29,
+        2.004790782928467
+      ],
+      "min": [
+        -25.000001907348633,
+        -27.000003814697266,
+        -0.20000198483467102
+      ]
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 3829
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 3829
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 8208
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 5700
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 5700,
+      "max": [
+        26.4966983795166,
+        28.763648986816406,
+        3.7593331336975098
+      ],
+      "min": [
+        -24.4966983795166,
+        -26.46906280517578,
+        -0.13341005146503448
+      ]
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 5700
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 5700
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 88578
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 45925
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 45925,
+      "max": [
+        28.207183837890625,
+        30.152952194213867,
+        6.8785881996154785
+      ],
+      "min": [
+        -26.152952194213867,
+        -28.207183837890625,
+        0.30728933215141296
+      ]
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 45925
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 45925
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 17253
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 5832
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 5832,
+      "max": [
+        -7.0718231201171875,
+        -3.472834825515747,
+        1.4437150955200195
+      ],
+      "min": [
+        -14.99422836303711,
+        -10.99422836303711,
+        -0.04871201887726784
+      ]
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 5832
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 5832
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 1386
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 916
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5126,
+      "count": 916,
+      "max": [
+        15.967530250549316,
+        11.662572860717773,
+        6.878584384918213
+      ],
+      "min": [
+        -14.087892532348633,
+        -9.36313533782959,
+        -0.000005303902980813291
+      ]
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 916
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5126,
+      "count": 916
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 8320
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8320,
+      "byteLength": 18379
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 26699,
+      "byteLength": 218741
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 245440,
+      "byteLength": 60904
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 306344,
+      "byteLength": 3210
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9728,
+      "minFilter": 9986,
+      "wrapS": 10497,
+      "wrapT": 10497
+    },
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "textures": [
+    {
+      "source": 0,
+      "sampler": 0
+    },
+    {
+      "source": 1,
+      "sampler": 1
+    },
+    {
+      "source": 2,
+      "sampler": 0
+    },
+    {
+      "source": 3,
+      "sampler": 1
+    },
+    {
+      "source": 4,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/webp",
+      "uri": "textures/3863_baseColor.webp"
+    },
+    {
+      "mimeType": "image/png",
+      "uri": "textures/chip_wood_a_baseColor.png"
+    },
+    {
+      "mimeType": "image/png",
+      "uri": "textures/fr-tree-a_baseColor.png"
+    },
+    {
+      "mimeType": "image/png",
+      "uri": "textures/plant_baseColor.png"
+    },
+    {
+      "mimeType": "image/png",
+      "uri": "textures/fire-red-buildings_baseColor.png"
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "scene.bin",
+      "byteLength": 309554
+    }
+  ],
+  "materials": [
+    {
+      "name": "3863",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.7885257473118872,
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 0
+        }
+      }
+    },
+    {
+      "name": "chip_wood_a",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.7885257473118872,
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 1
+        }
+      }
+    },
+    {
+      "name": "fr-tree-a",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.8646564782796078,
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 2
+        }
+      }
+    },
+    {
+      "name": "plant",
+      "alphaMode": "MASK",
+      "alphaCutoff": 0.5,
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 3
+        }
+      },
+      "extensions": {
+        "KHR_materials_specular": {
+          "specularFactor": 0.30933427606636515
+        }
+      }
+    },
+    {
+      "name": "fire-red-buildings",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.8308205978495098,
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 4
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "3863-001 (2)_3863_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 2,
+            "TEXCOORD_0": 3,
+            "TEXCOORD_1": 4
+          },
+          "mode": 4,
+          "material": 0,
+          "indices": 0,
+          "extensions": {
+            "KHR_draco_mesh_compression": {
+              "bufferView": 0,
+              "attributes": {
+                "NORMAL": 0,
+                "POSITION": 1,
+                "TEXCOORD_0": 2,
+                "TEXCOORD_1": 3
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3863-001 (2)_chip_wood_a_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 7,
+            "TEXCOORD_0": 8,
+            "TEXCOORD_1": 9
+          },
+          "mode": 4,
+          "material": 1,
+          "indices": 5,
+          "extensions": {
+            "KHR_draco_mesh_compression": {
+              "bufferView": 1,
+              "attributes": {
+                "NORMAL": 0,
+                "POSITION": 1,
+                "TEXCOORD_0": 2,
+                "TEXCOORD_1": 3
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3863-001 (2)_fr-tree-a_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 11,
+            "POSITION": 12,
+            "TEXCOORD_0": 13,
+            "TEXCOORD_1": 14
+          },
+          "mode": 4,
+          "material": 2,
+          "indices": 10,
+          "extensions": {
+            "KHR_draco_mesh_compression": {
+              "bufferView": 2,
+              "attributes": {
+                "NORMAL": 0,
+                "POSITION": 1,
+                "TEXCOORD_0": 2,
+                "TEXCOORD_1": 3
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3863-001 (2)_plant_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 16,
+            "POSITION": 17,
+            "TEXCOORD_0": 18,
+            "TEXCOORD_1": 19
+          },
+          "mode": 4,
+          "material": 3,
+          "indices": 15,
+          "extensions": {
+            "KHR_draco_mesh_compression": {
+              "bufferView": 3,
+              "attributes": {
+                "NORMAL": 0,
+                "POSITION": 1,
+                "TEXCOORD_0": 2,
+                "TEXCOORD_1": 3
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3863-001 (2)_fire-red-buildings_0",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 21,
+            "POSITION": 22,
+            "TEXCOORD_0": 23,
+            "TEXCOORD_1": 24
+          },
+          "mode": 4,
+          "material": 4,
+          "indices": 20,
+          "extensions": {
+            "KHR_draco_mesh_compression": {
+              "bufferView": 4,
+              "attributes": {
+                "NORMAL": 0,
+                "POSITION": 1,
+                "TEXCOORD_0": 2,
+                "TEXCOORD_1": 3
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "Sketchfab_model",
+      "rotation": [
+        -0.7071067811865475,
+        0,
+        0,
+        0.7071067811865476
+      ],
+      "children": [
+        1
+      ]
+    },
+    {
+      "name": "caf0502c2655432ba99041437bb048f5.fbx",
+      "rotation": [
+        0.7071067811865475,
+        0,
+        0,
+        0.7071067811865476
+      ],
+      "scale": [
+        0.009999999776482582,
+        0.009999999776482582,
+        0.009999999776482582
+      ],
+      "children": [
+        2
+      ]
+    },
+    {
+      "name": "RootNode",
+      "children": [
+        3
+      ]
+    },
+    {
+      "name": "3863-001 (2)",
+      "rotation": [
+        -0.7071068387877038,
+        0,
+        0,
+        0.7071067235853866
+      ],
+      "scale": [
+        100,
+        100.00000000000001,
+        100.00000000000001
+      ],
+      "children": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "name": "3863-001 (2)_3863_0",
+      "mesh": 0
+    },
+    {
+      "name": "3863-001 (2)_chip_wood_a_0",
+      "mesh": 1
+    },
+    {
+      "name": "3863-001 (2)_fr-tree-a_0",
+      "mesh": 2
+    },
+    {
+      "name": "3863-001 (2)_plant_0",
+      "mesh": 3
+    },
+    {
+      "name": "3863-001 (2)_fire-red-buildings_0",
+      "mesh": 4
+    }
+  ],
+  "scenes": [
+    {
+      "name": "Sketchfab_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "extensionsUsed": [
+    "KHR_draco_mesh_compression",
+    "KHR_materials_specular"
+  ],
+  "extensionsRequired": [
+    "KHR_draco_mesh_compression"
+  ]
+}

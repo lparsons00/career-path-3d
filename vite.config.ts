@@ -15,6 +15,13 @@ export default defineConfig({
       }
     },
     assetsInlineLimit: 4096, // Keep this reasonable for GLTF textures
+    // Optimize for mobile
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console logs in production
+      },
+    },
   },
   optimizeDeps: {
     include: ['three']
