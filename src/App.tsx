@@ -42,12 +42,40 @@ function App() {
     setLoading(false);
 
     const handleError = (event: ErrorEvent) => {
-      logger.error('App', 'Unhandled error', { message: event.error?.message });
+      const errorMessage = event.error?.message || event.message || 'Unknown error'
+      
+      // Handle specific WebGL context errors on mobile
+      if (errorMessage.includes('getShaderPrecisionFormat') || 
+          errorMessage.includes('null is not an object')) {
+        logger.error('App', 'WebGL context precision error (mobile)', { 
+          message: errorMessage,
+          error: event.error
+        })
+        // Don't crash the app - this is often recoverable
+        event.preventDefault()
+        return
+      }
+      
+      logger.error('App', 'Unhandled error', { message: errorMessage });
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason?.message || event.reason
+      const reasonStr = typeof reason === 'string' ? reason : JSON.stringify(reason)
+      
+      // Handle WebGL context errors in promise rejections
+      if (reasonStr.includes('getShaderPrecisionFormat') || 
+          reasonStr.includes('null is not an object')) {
+        logger.error('App', 'WebGL context precision error in promise (mobile)', {
+          reason: reasonStr
+        })
+        // Prevent unhandled rejection
+        event.preventDefault()
+        return
+      }
+      
       logger.error('App', 'Unhandled promise rejection', {
-        reason: event.reason?.message || event.reason
+        reason: reasonStr
       });
     };
 

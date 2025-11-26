@@ -223,8 +223,47 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     onGLBFailure?.()
   }, [onGLBFailure])
 
+  // WebGL context attributes optimized for mobile
+  const webglContextAttributes = useCallback(() => ({
+    alpha: false,
+    antialias: !mobile,
+    powerPreference: mobile ? 'high-performance' : 'default',
+    preserveDrawingBuffer: false,
+    failIfMajorPerformanceCaveat: false,
+    stencil: false,
+    depth: true,
+    premultipliedAlpha: false,
+    desynchronized: false
+  }), [mobile])
+
   const handleCanvasCreated = useCallback(({ gl, camera, scene }: { gl: THREE.WebGLRenderer; camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
+      // Validate the renderer's context is still valid
+      const webglContext = gl.getContext()
+      if (!webglContext) {
+        throw new Error('WebGL context is null')
+      }
+
+      // Test context is usable - but don't fail if HIGH_FLOAT isn't supported
+      try {
+        const highFloatPrecision = webglContext.getShaderPrecisionFormat(
+          webglContext.VERTEX_SHADER, 
+          webglContext.HIGH_FLOAT
+        )
+        if (!highFloatPrecision || highFloatPrecision.precision === 0) {
+          logger.warn('Scene', 'HIGH_FLOAT precision not supported, THREE.js will use MEDIUM_FLOAT', {
+            isMobile: mobile
+          })
+          // Don't throw - THREE.js handles this gracefully
+        }
+      } catch (testErr) {
+        // Only log, don't fail - some devices might not support precision queries
+        logger.warn('Scene', 'Could not query shader precision format', { 
+          error: testErr instanceof Error ? testErr.message : 'Unknown',
+          isMobile: mobile 
+        })
+      }
+      
       // Configure renderer for mobile
       if (mobile) {
         gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
@@ -241,11 +280,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       scene.add(new THREE.AmbientLight(0xffffff, 0.4))
       
       logger.info('Scene', 'Canvas and Three.js scene initialized', {
-        isMobile: mobile,
-        rendererInfo: {
-          vendor: gl.getContext()?.getParameter(gl.getContext()?.VENDOR),
-          renderer: gl.getContext()?.getParameter(gl.getContext()?.RENDERER)
-        }
+        isMobile: mobile
       })
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
@@ -265,6 +300,20 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       errorMessage = event.message || event.toString();
     }
     
+    // Handle specific mobile WebGL precision errors
+    if (errorMessage.includes('getShaderPrecisionFormat') || 
+        errorMessage.includes('null is not an object')) {
+      logger.error('Scene', 'WebGL precision format error on mobile', { 
+        error: errorMessage,
+        isMobile: mobile,
+        userAgent: navigator.userAgent
+      })
+      // Try to recover by switching to simple scene
+      setError('WebGL initialization failed. Please refresh the page or try a different browser.')
+      onGLBFailure?.()
+      return
+    }
+    
     logger.error('Scene', 'Canvas creation failed', { 
       error: errorMessage,
       isMobile: mobile,
@@ -272,7 +321,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
       event
     })
     setError(`Canvas error: ${errorMessage}`)
-  }, [mobile])
+  }, [mobile, onGLBFailure])
 
   // Remove or comment out the temporary GLTF debug
   // useEffect(() => {
@@ -332,6 +381,35 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
     )
   }
 
+  // Add a small delay on mobile to let WebGL context stabilize
+  const [canRender, setCanRender] = useState(!mobile)
+
+  useEffect(() => {
+    if (mobile && webglSupported) {
+      // Small delay to ensure WebGL context is ready
+      const timer = setTimeout(() => {
+        setCanRender(true)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [mobile, webglSupported])
+
+  if (!canRender && mobile) {
+    return (
+      <div style={{ 
+        width: '100%', 
+        height: '100%', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: '#87CEEB',
+        color: 'white'
+      }}>
+        <div>Initializing 3D scene...</div>
+      </div>
+    )
+  }
+
   return (
     <CollisionProvider debug={debugMode}>
       <div style={{ 
@@ -350,15 +428,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
           }}
           onCreated={handleCanvasCreated}
           onError={handleCanvasError}
-          gl={{
-            antialias: !mobile, // Disable antialiasing on mobile for better performance
-            alpha: false,
-            powerPreference: mobile ? 'high-performance' : 'default',
-            preserveDrawingBuffer: false,
-            failIfMajorPerformanceCaveat: false, // Don't fail on low-end devices
-            stencil: false, // Disable stencil buffer for better mobile performance
-            depth: true
-          }}
+          gl={webglContextAttributes()}
           shadows={false}
           dpr={mobile ? Math.min(window.devicePixelRatio || 1, 2) : undefined} // Limit DPR on mobile to max 2 for performance
           frameloop="always"
