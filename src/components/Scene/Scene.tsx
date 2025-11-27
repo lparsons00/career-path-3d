@@ -163,6 +163,31 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
 
   const handleCanvasCreated = useCallback(({ gl, camera, scene }: { gl: THREE.WebGLRenderer; camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
+      // Validate WebGL context before proceeding
+      const webglContext = gl.getContext();
+      if (!webglContext) {
+        throw new Error('WebGL context is null');
+      }
+
+      // Test context is usable - but handle errors gracefully
+      try {
+        const precisionFormat = webglContext.getShaderPrecisionFormat?.(
+          webglContext.VERTEX_SHADER,
+          webglContext.HIGH_FLOAT
+        );
+        if (!precisionFormat) {
+          logger.warn('Scene', 'HIGH_FLOAT precision not available, using MEDIUM_FLOAT', {
+            isMobile: mobile
+          });
+        }
+      } catch (precisionError) {
+        // Non-fatal - THREE.js will handle this
+        logger.warn('Scene', 'Could not query shader precision (non-fatal)', {
+          error: precisionError instanceof Error ? precisionError.message : 'Unknown',
+          isMobile: mobile
+        });
+      }
+
       // Import context manager and memory monitor
       Promise.all([
         import('../utils/webglContextManager'),
@@ -204,23 +229,8 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         gl.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
         gl.shadowMap.enabled = false;
         
-        // Set lower precision shaders if possible
-        const context = gl.getContext();
-        if (context) {
-          try {
-            // Check if we can use lower precision
-            const precisionFormat = context.getShaderPrecisionFormat(
-              context.VERTEX_SHADER,
-              context.MEDIUM_FLOAT
-            );
-            if (precisionFormat && precisionFormat.precision > 0) {
-              // Force medium precision shaders
-              gl.capabilities.precision = 'mediump';
-            }
-          } catch (e) {
-            // Ignore precision check errors
-          }
-        }
+        // Don't try to access precision format on mobile - it can cause errors
+        // THREE.js will handle precision automatically
       }
       
       camera.lookAt(0, 0, 0)

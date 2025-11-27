@@ -40,12 +40,40 @@ function App() {
     setLoading(false);
 
     const handleError = (event: ErrorEvent) => {
-      logger.error('App', 'Unhandled error', { message: event.error?.message });
+      const errorMessage = event.error?.message || event.message || 'Unknown error';
+      
+      // Handle WebGL precision format errors specifically
+      if (errorMessage.includes('getShaderPrecisionFormat') || 
+          errorMessage.includes('null is not an object')) {
+        logger.error('App', 'WebGL precision format error (mobile)', { 
+          message: errorMessage,
+          error: event.error
+        });
+        // Prevent default error handling - we've patched this
+        event.preventDefault();
+        return;
+      }
+      
+      logger.error('App', 'Unhandled error', { message: errorMessage });
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason?.message || event.reason;
+      const reasonStr = typeof reason === 'string' ? reason : JSON.stringify(reason);
+      
+      // Handle WebGL precision format errors in promises
+      if (reasonStr.includes('getShaderPrecisionFormat') || 
+          reasonStr.includes('null is not an object')) {
+        logger.error('App', 'WebGL precision format error in promise (mobile)', {
+          reason: reasonStr
+        });
+        // Prevent unhandled rejection
+        event.preventDefault();
+        return;
+      }
+      
       logger.error('App', 'Unhandled promise rejection', {
-        reason: event.reason?.message || event.reason
+        reason: reasonStr
       });
     };
 
