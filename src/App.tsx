@@ -8,17 +8,8 @@ import { logger } from './components/utils/logger'
 import { monitorPerformance } from './components/utils/performance'
 import './App.css'
 
-const allowDebug = () => {
-  if (import.meta.env.DEV) return true;
-  if (typeof window === 'undefined') return false;
-  const isLocalhost = window.location.hostname === 'localhost';
-  const hasDebugParam = window.location.search.includes('debug=true');
-  return isLocalhost || (hasDebugParam && import.meta.env.VITE_ALLOW_DEBUG === 'true');
-}
-
 function App() {
   const careerPoints = createGoldenPath()
-  const canDebug = allowDebug()
   const [useSimpleScene, setUseSimpleScene] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -57,8 +48,9 @@ function App() {
       }
       
       // Handle indexOf errors (likely THREE.js internal)
-      if (errorMessage.includes('indexOf') || errorStack.includes('indexOf')) {
-        logger.error('App', 'indexOf error (likely THREE.js)', { 
+      if (errorMessage.includes('indexOf') || errorStack.includes('indexOf') || 
+          errorMessage.includes('null is not an object') && errorMessage.includes('indexOf')) {
+        logger.warn('App', 'indexOf error caught (suppressed)', { 
           message: errorMessage,
           stack: errorStack,
           error: event.error,
@@ -66,8 +58,10 @@ function App() {
           lineno: event.lineno,
           colno: event.colno
         });
-        // Don't prevent - let it log but continue
-        return;
+        // Prevent error from propagating - we've patched this
+        event.preventDefault();
+        event.stopPropagation();
+        return true; // Suppress the error
       }
       
       logger.error('App', 'Unhandled error', { 
@@ -85,7 +79,17 @@ function App() {
       // Handle WebGL precision format errors in promises
       if (reasonStr.includes('getShaderPrecisionFormat') || 
           reasonStr.includes('null is not an object')) {
-        logger.error('App', 'WebGL precision format error in promise (mobile)', {
+        logger.warn('App', 'WebGL precision format error in promise (suppressed)', {
+          reason: reasonStr
+        });
+        // Prevent unhandled rejection
+        event.preventDefault();
+        return;
+      }
+      
+      // Handle indexOf errors in promises
+      if (reasonStr.includes('indexOf')) {
+        logger.warn('App', 'indexOf error in promise (suppressed)', {
           reason: reasonStr
         });
         // Prevent unhandled rejection

@@ -4,22 +4,25 @@ if (typeof window !== 'undefined') {
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   
   // Patch Array methods to handle null/undefined - CRITICAL for mobile
+  // Note: This is a backup patch - index.html should patch it first
   const originalIndexOf = Array.prototype.indexOf;
   Array.prototype.indexOf = function(searchElement: any, fromIndex?: number): number {
     try {
-      // Check if 'this' is null or undefined
-      if (this == null || this === undefined) {
-        console.warn('Array.indexOf called on null/undefined, returning -1');
+      // CRITICAL: Check for null/undefined FIRST (typeof null === 'object' in JS!)
+      if (this === null || this === undefined) {
+        console.warn('[MAIN] Array.indexOf called on null/undefined, returning -1');
         return -1;
       }
-      // Ensure it's actually an array-like object
-      if (typeof this !== 'object') {
-        console.warn('Array.indexOf called on non-object, returning -1');
+      // Check if it's a primitive (not an object)
+      if (typeof this !== 'object' && typeof this !== 'function') {
+        console.warn('[MAIN] Array.indexOf called on primitive, returning -1');
         return -1;
       }
+      // Try to call original - if it fails, return -1
       return originalIndexOf.call(this, searchElement, fromIndex);
     } catch (error) {
-      console.warn('Error in Array.indexOf, returning -1:', error);
+      // If original call fails (e.g., not array-like), return -1
+      console.warn('[MAIN] Array.indexOf error, returning -1:', error);
       return -1;
     }
   };
@@ -28,13 +31,19 @@ if (typeof window !== 'undefined') {
   const originalStringIndexOf = String.prototype.indexOf;
   String.prototype.indexOf = function(searchString: string, position?: number): number {
     try {
-      if (this == null || this === undefined) {
-        console.warn('String.indexOf called on null/undefined, returning -1');
+      // CRITICAL: Check for null/undefined FIRST
+      if (this === null || this === undefined) {
+        console.warn('[MAIN] String.indexOf called on null/undefined, returning -1');
+        return -1;
+      }
+      // Check if it's actually a string or string-like
+      if (typeof this !== 'string' && typeof this !== 'object') {
+        console.warn('[MAIN] String.indexOf called on non-string, returning -1');
         return -1;
       }
       return originalStringIndexOf.call(this, searchString, position);
     } catch (error) {
-      console.warn('Error in String.indexOf, returning -1:', error);
+      console.warn('[MAIN] String.indexOf error, returning -1:', error);
       return -1;
     }
   };

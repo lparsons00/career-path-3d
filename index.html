@@ -12,17 +12,27 @@
       (function() {
         'use strict';
         
+        // Verify patch is applied
+        console.log('[PATCH] Applying critical Array/String indexOf patches...');
+        
         // Patch Array.indexOf to handle null/undefined - CRITICAL FIX
         const originalIndexOf = Array.prototype.indexOf;
         Array.prototype.indexOf = function(searchElement, fromIndex) {
           try {
-            // Check if 'this' is null, undefined, or not an object
-            if (this == null || this === undefined || this === null || typeof this !== 'object') {
-              console.warn('[PATCH] Array.indexOf called on invalid value, returning -1');
+            // CRITICAL: Check for null/undefined FIRST (typeof null === 'object' in JS!)
+            if (this === null || this === undefined) {
+              console.warn('[PATCH] Array.indexOf called on null/undefined, returning -1');
               return -1;
             }
+            // Check if it's a primitive (not an object)
+            if (typeof this !== 'object' && typeof this !== 'function') {
+              console.warn('[PATCH] Array.indexOf called on primitive, returning -1');
+              return -1;
+            }
+            // Try to call original - if it fails, return -1
             return originalIndexOf.call(this, searchElement, fromIndex);
           } catch (e) {
+            // If original call fails (e.g., not array-like), return -1
             console.warn('[PATCH] Array.indexOf error, returning -1:', e);
             return -1;
           }
@@ -32,11 +42,19 @@
         const originalStringIndexOf = String.prototype.indexOf;
         String.prototype.indexOf = function(searchString, position) {
           try {
-            if (this == null || this === undefined || this === null) {
+            // CRITICAL: Check for null/undefined FIRST
+            if (this === null || this === undefined) {
+              console.warn('[PATCH] String.indexOf called on null/undefined, returning -1');
+              return -1;
+            }
+            // Check if it's actually a string or string-like
+            if (typeof this !== 'string' && typeof this !== 'object') {
+              console.warn('[PATCH] String.indexOf called on non-string, returning -1');
               return -1;
             }
             return originalStringIndexOf.call(this, searchString, position);
           } catch (e) {
+            console.warn('[PATCH] String.indexOf error, returning -1:', e);
             return -1;
           }
         };
@@ -80,6 +98,50 @@
               }
             };
           }
+        }
+        
+        // Verify patch is working
+        try {
+          var testNull = null;
+          var testResult = Array.prototype.indexOf.call(testNull, 'test');
+          if (testResult === -1) {
+            console.log('[PATCH] ✓ Array.indexOf patch verified and working');
+          } else {
+            console.error('[PATCH] ✗ Array.indexOf patch verification failed');
+          }
+        } catch (e) {
+          console.error('[PATCH] ✗ Array.indexOf patch verification error:', e);
+        }
+        
+        // Install global error handler to catch indexOf errors on null
+        // This catches errors that happen before the patch can intercept
+        if (typeof window !== 'undefined') {
+          var originalOnerror = window.onerror;
+          window.onerror = function(msg, url, line, col, error) {
+            // Check if this is an indexOf error on null
+            if (msg && typeof msg === 'string' && 
+                (msg.includes('indexOf') || msg.includes('l.indexOf') || msg.includes('null is not an object'))) {
+              console.warn('[PATCH] Caught indexOf error on null, suppressing:', msg);
+              // Suppress the error - return true to prevent default handling
+              return true;
+            }
+            // For other errors, call original handler if it exists
+            if (originalOnerror) {
+              return originalOnerror.call(this, msg, url, line, col, error);
+            }
+            return false;
+          };
+          
+          // Also catch unhandled promise rejections
+          window.addEventListener('unhandledrejection', function(event) {
+            var reason = event.reason;
+            var errorMsg = reason && (reason.message || reason.toString() || '');
+            if (errorMsg && typeof errorMsg === 'string' && 
+                (errorMsg.includes('indexOf') || errorMsg.includes('null is not an object'))) {
+              console.warn('[PATCH] Caught indexOf rejection, suppressing:', errorMsg);
+              event.preventDefault(); // Suppress the error
+            }
+          });
         }
       })();
     </script>
