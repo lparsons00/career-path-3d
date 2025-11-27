@@ -5,6 +5,84 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Luke Parsons Portfolio</title>
+    <script>
+      // CRITICAL: Patch Array methods IMMEDIATELY before any other scripts run
+      // This must be the very first script to execute
+      // Apply to ALL devices to be safe, but especially mobile
+      (function() {
+        'use strict';
+        
+        // Patch Array.indexOf to handle null/undefined - CRITICAL FIX
+        const originalIndexOf = Array.prototype.indexOf;
+        Array.prototype.indexOf = function(searchElement, fromIndex) {
+          try {
+            // Check if 'this' is null, undefined, or not an object
+            if (this == null || this === undefined || this === null || typeof this !== 'object') {
+              console.warn('[PATCH] Array.indexOf called on invalid value, returning -1');
+              return -1;
+            }
+            return originalIndexOf.call(this, searchElement, fromIndex);
+          } catch (e) {
+            console.warn('[PATCH] Array.indexOf error, returning -1:', e);
+            return -1;
+          }
+        };
+        
+        // Patch String.indexOf
+        const originalStringIndexOf = String.prototype.indexOf;
+        String.prototype.indexOf = function(searchString, position) {
+          try {
+            if (this == null || this === undefined || this === null) {
+              return -1;
+            }
+            return originalStringIndexOf.call(this, searchString, position);
+          } catch (e) {
+            return -1;
+          }
+        };
+        
+        // Mobile-specific patches
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          // Patch WebGL context getShaderPrecisionFormat
+          if (typeof WebGLRenderingContext !== 'undefined') {
+            const originalGetShaderPrecisionFormat = WebGLRenderingContext.prototype.getShaderPrecisionFormat;
+            WebGLRenderingContext.prototype.getShaderPrecisionFormat = function(shaderType, precisionType) {
+              try {
+                if (!this) {
+                  return { rangeMin: 127, rangeMax: 127, precision: 23 };
+                }
+                if (this.isContextLost && this.isContextLost()) {
+                  return { rangeMin: 127, rangeMax: 127, precision: 23 };
+                }
+                const result = originalGetShaderPrecisionFormat.call(this, shaderType, precisionType);
+                return result || { rangeMin: 127, rangeMax: 127, precision: 23 };
+              } catch (e) {
+                return { rangeMin: 127, rangeMax: 127, precision: 23 };
+              }
+            };
+          }
+          
+          if (typeof WebGL2RenderingContext !== 'undefined') {
+            const originalGetShaderPrecisionFormat2 = WebGL2RenderingContext.prototype.getShaderPrecisionFormat;
+            WebGL2RenderingContext.prototype.getShaderPrecisionFormat = function(shaderType, precisionType) {
+              try {
+                if (!this) {
+                  return { rangeMin: 127, rangeMax: 127, precision: 23 };
+                }
+                if (this.isContextLost && this.isContextLost()) {
+                  return { rangeMin: 127, rangeMax: 127, precision: 23 };
+                }
+                const result = originalGetShaderPrecisionFormat2.call(this, shaderType, precisionType);
+                return result || { rangeMin: 127, rangeMax: 127, precision: 23 };
+              } catch (e) {
+                return { rangeMin: 127, rangeMax: 127, precision: 23 };
+              }
+            };
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

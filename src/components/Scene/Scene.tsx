@@ -32,6 +32,7 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   const [error, setError] = useState<string | null>(null)
   const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
   const [glbFailed, setGlbFailed] = useState(false)
+  const [gltfUrl, setGltfUrl] = useState<string>('/models/town/town-draco.gltf') // Start with Draco version
   const [showLoading, setShowLoading] = useState(true)
   const [cameraTarget, setCameraTarget] = useState<[number, number, number]>(playerPosition)
   
@@ -152,14 +153,26 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
   }, [linkedInPoint])
 
   const handleGLBFailure = useCallback(() => {
+    // Try fallback to original GLTF if Draco version failed
+    if (gltfUrl === '/models/town/town-draco.gltf') {
+      logger.warn('Scene', 'Draco GLTF failed, trying original GLTF', { 
+        dracoUrl: gltfUrl,
+        fallbackUrl: '/models/town/town.gltf',
+        currentOrigin: window.location.origin
+      })
+      setGltfUrl('/models/town/town.gltf')
+      return // Don't mark as failed yet, try the fallback
+    }
+    
+    // Both attempts failed
     logger.error('Scene', 'GLTF loading failed after all attempts', { 
-      gltfPath: '/models/town/town.gltf',
+      triedUrls: ['/models/town/town-draco.gltf', '/models/town/town.gltf'],
       currentOrigin: window.location.origin,
       userAgent: navigator.userAgent
     })
     setGlbFailed(true)
     onGLBFailure?.()
-  }, [onGLBFailure])
+  }, [onGLBFailure, gltfUrl])
 
   const handleCanvasCreated = useCallback(({ gl, camera, scene }: { gl: THREE.WebGLRenderer; camera: THREE.Camera; scene: THREE.Scene }) => {
     try {
@@ -378,11 +391,13 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
             {!glbFailed ? (
               <GLTFErrorBoundary onError={handleGLBFailure}>
                 <OptimizedGLTFScene 
-                  url="/models/town/town-draco.gltf"
+                  url={gltfUrl}
                   position={[0, 0, 0]}
                   scale={1}
                   onError={() => {
-                    logger.error('Scene', 'GLTF loading failed, switching to fallback');
+                    logger.warn('Scene', 'GLTF loading failed, attempting fallback', { 
+                      failedUrl: gltfUrl 
+                    });
                     handleGLBFailure();
                   }}
                 />

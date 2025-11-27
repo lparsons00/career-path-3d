@@ -8,7 +8,16 @@ interface LoadingProgressProps {
 }
 
 const LoadingProgress: React.FC<LoadingProgressProps> = ({ onComplete }) => {
-  const { progress, active } = useProgress();
+  // Safe access to useProgress with fallbacks
+  let progressData: { progress: number; active: boolean } | null = null;
+  try {
+    progressData = useProgress();
+  } catch (error) {
+    console.warn('LoadingProgress: useProgress failed', error);
+  }
+  
+  const progress = progressData?.progress ?? 0;
+  const active = progressData?.active ?? false;
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {

@@ -34,18 +34,35 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
       logger.warn('OptimizedGLTFScene', 'Draco decoder preload failed', { error: err });
     });
     
-    // Check if GLTF file is accessible
+    // Check if GLTF file is accessible (non-blocking - don't fail if HEAD request fails)
+    // The actual fetch might still work even if HEAD fails
     checkGLTFAccessibility(url).then(isAccessible => {
       if (!isAccessible) {
-        logger.error('OptimizedGLTFScene', 'GLTF file is not accessible', { url });
-        setHasError(true);
-        onError?.();
+        logger.warn('OptimizedGLTFScene', 'GLTF file HEAD check failed (will try actual fetch)', { url });
+        // Don't fail here - let the actual fetch attempt happen
       }
+    }).catch(err => {
+      logger.warn('OptimizedGLTFScene', 'GLTF accessibility check error (non-blocking)', { 
+        url, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      });
+      // Don't fail - the actual fetch might still work
     });
   }, [url, onError]);
   
   // Use drei's useProgress to track loading
-  const { progress, active } = useProgress();
+  // Safe access with fallbacks
+  let progressData: { progress: number; active: boolean } | null = null;
+  try {
+    progressData = useProgress();
+  } catch (error) {
+    logger.warn('OptimizedGLTFScene', 'useProgress failed, using defaults', {
+      error: error instanceof Error ? error.message : 'Unknown'
+    });
+  }
+  
+  const progress = progressData?.progress ?? 0;
+  const active = progressData?.active ?? false;
   
   // Report progress to parent (optional)
   useEffect(() => {
@@ -59,7 +76,8 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
   // drei automatically handles the Draco decoder loading
   // Note: useGLTF can throw errors, but we can't wrap hooks in try-catch
   // Errors will be caught by ErrorBoundary and Suspense
-  const gltf = useGLTF(url, true); // true = use draco decoder if file is compressed
+  const useDraco = url.includes('draco'); // Only use Draco if URL contains 'draco'
+  const gltf = useGLTF(url, useDraco); // Enable Draco decoder only for Draco-compressed files
   const scene = gltf?.scene;
   
   // Log when scene becomes available
