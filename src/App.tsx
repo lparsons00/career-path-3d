@@ -41,12 +41,14 @@ function App() {
 
     const handleError = (event: ErrorEvent) => {
       const errorMessage = event.error?.message || event.message || 'Unknown error';
+      const errorStack = event.error?.stack || '';
       
       // Handle WebGL precision format errors specifically
       if (errorMessage.includes('getShaderPrecisionFormat') || 
           errorMessage.includes('null is not an object')) {
         logger.error('App', 'WebGL precision format error (mobile)', { 
           message: errorMessage,
+          stack: errorStack,
           error: event.error
         });
         // Prevent default error handling - we've patched this
@@ -54,7 +56,26 @@ function App() {
         return;
       }
       
-      logger.error('App', 'Unhandled error', { message: errorMessage });
+      // Handle indexOf errors (likely THREE.js internal)
+      if (errorMessage.includes('indexOf') || errorStack.includes('indexOf')) {
+        logger.error('App', 'indexOf error (likely THREE.js)', { 
+          message: errorMessage,
+          stack: errorStack,
+          error: event.error,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno
+        });
+        // Don't prevent - let it log but continue
+        return;
+      }
+      
+      logger.error('App', 'Unhandled error', { 
+        message: errorMessage,
+        stack: errorStack,
+        filename: event.filename,
+        lineno: event.lineno
+      });
     };
 
     const handleRejection = (event: PromiseRejectionEvent) => {

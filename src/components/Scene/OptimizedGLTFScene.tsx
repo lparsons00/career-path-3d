@@ -57,6 +57,8 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
   // Use the GLTF hook with Draco compression support
   // The second parameter enables Draco decompression if the file is compressed
   // drei automatically handles the Draco decoder loading
+  // Note: useGLTF can throw errors, but we can't wrap hooks in try-catch
+  // Errors will be caught by ErrorBoundary and Suspense
   const gltf = useGLTF(url, true); // true = use draco decoder if file is compressed
   const scene = gltf?.scene;
   

@@ -18,7 +18,10 @@ class ProductionLogger {
 
   private shouldLog(level: string): boolean {
     const levels = ['error', 'warn', 'info', 'debug'];
-    return this.config.enabled && levels.indexOf(level) <= levels.indexOf(this.config.level);
+    if (!this.config.enabled) return false;
+    const levelIndex = levels?.indexOf?.(level) ?? -1;
+    const configLevelIndex = levels?.indexOf?.(this.config.level) ?? -1;
+    return levelIndex <= configLevelIndex;
   }
 
   error(context: string, message: string, data?: any) {
