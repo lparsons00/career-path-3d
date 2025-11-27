@@ -13,6 +13,7 @@ import { isMobile } from '../utils/pathUtils'
 import GoldenPath from '../Path/GoldenPath'
 import OptimizedGLTFScene from '../Scene/OptimizedGLTFScene'
 import LoadingProgress from '../UI/LoadingProgress'
+import GLTFErrorBoundary from '../Scene/GLTFErrorBoundary'
 import * as THREE from 'three'
 import { logger } from '../utils/logger'
 import FollowCamera from '../Camera/FollowCamera'
@@ -343,21 +344,39 @@ const Scene: React.FC<SceneProps> = ({ careerPoints, onGLBFailure }) => {
         >
           <color attach="background" args={['#87CEEB']} />
           
-          <Suspense fallback={null}>
+          <Suspense fallback={
+            <mesh>
+              <boxGeometry args={[1, 1, 1]} />
+              <meshStandardMaterial color="#888888" />
+            </mesh>
+          }>
             {/* Collision debug visualization - shows collision boxes when debugMode is true */}
             {debugMode && <CollisionDebug />}
 
             {/* Camera that follows player */}
             <FollowCamera target={cameraTarget} />
 
+            {/* Debug: Test mesh to verify rendering works */}
+            {mobile && (
+              <mesh position={[0, 2, 0]}>
+                <boxGeometry args={[2, 2, 2]} />
+                <meshStandardMaterial color="orange" />
+              </mesh>
+            )}
+
             {/* Only try to load GLTF if it hasn't failed before */}
             {!glbFailed ? (
-              <OptimizedGLTFScene 
-                url="/models/town/town-draco.gltf"
-                position={[0, 0, 0]}
-                scale={1}
-                onError={handleGLBFailure}
-              />
+              <GLTFErrorBoundary onError={handleGLBFailure}>
+                <OptimizedGLTFScene 
+                  url="/models/town/town-draco.gltf"
+                  position={[0, 0, 0]}
+                  scale={1}
+                  onError={() => {
+                    logger.error('Scene', 'GLTF loading failed, switching to fallback');
+                    handleGLBFailure();
+                  }}
+                />
+              </GLTFErrorBoundary>
             ) : (
               // Fallback geometry when GLTF fails
               <group>

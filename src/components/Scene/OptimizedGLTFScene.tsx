@@ -7,6 +7,7 @@ import { isMobile } from '../utils/pathUtils';
 // Texture optimization utilities imported but using aggressive version
 import { aggressivelyOptimizeTexture, simplifyGeometry } from '../utils/webglContextManager';
 import { preloadDracoDecoder } from '../utils/dracoLoader';
+import { checkGLTFAccessibility } from '../utils/gltfDebugger';
 
 interface OptimizedGLTFSceneProps {
   url: string;
@@ -32,7 +33,16 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
     preloadDracoDecoder().catch(err => {
       logger.warn('OptimizedGLTFScene', 'Draco decoder preload failed', { error: err });
     });
-  }, []);
+    
+    // Check if GLTF file is accessible
+    checkGLTFAccessibility(url).then(isAccessible => {
+      if (!isAccessible) {
+        logger.error('OptimizedGLTFScene', 'GLTF file is not accessible', { url });
+        setHasError(true);
+        onError?.();
+      }
+    });
+  }, [url, onError]);
   
   // Use drei's useProgress to track loading
   const { progress, active } = useProgress();
@@ -48,7 +58,25 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
   // The second parameter enables Draco decompression if the file is compressed
   // drei automatically handles the Draco decoder loading
   const gltf = useGLTF(url, true); // true = use draco decoder if file is compressed
-  const scene = gltf.scene;
+  const scene = gltf?.scene;
+  
+  // Log when scene becomes available
+  useEffect(() => {
+    if (scene) {
+      logger.info('OptimizedGLTFScene', 'GLTF scene available', { 
+        url,
+        childrenCount: scene.children.length,
+        isMobile: mobile,
+        sceneType: scene.type,
+        sceneUuid: scene.uuid
+      });
+    } else if (gltf) {
+      logger.warn('OptimizedGLTFScene', 'GLTF loaded but scene is null', { 
+        url,
+        gltfKeys: Object.keys(gltf)
+      });
+    }
+  }, [scene, gltf, url, mobile]);
 
   // Optimize the loaded scene for mobile
   useEffect(() => {
@@ -232,16 +260,40 @@ const OptimizedGLTFScene: React.FC<OptimizedGLTFSceneProps> = ({
   }, [scene]);
 
   if (hasError) {
+    logger.error('OptimizedGLTFScene', 'Rendering null due to error', { url });
     return null;
   }
 
-  return scene ? (
+  if (!scene) {
+    logger.warn('OptimizedGLTFScene', 'Scene is null, not rendering', { url });
+    return null;
+  }
+
+  // Verify scene has content before rendering
+  if (scene.children.length === 0) {
+    logger.warn('OptimizedGLTFScene', 'Scene has no children', { url });
+  }
+
+  logger.info('OptimizedGLTFScene', 'Rendering scene', { 
+    url,
+    childrenCount: scene.children.length,
+    position,
+    scale,
+    scenePosition: scene.position,
+    sceneScale: scene.scale,
+    sceneVisible: scene.visible
+  });
+
+  // Ensure scene is visible
+  scene.visible = true;
+  scene.position.set(...position);
+  scene.scale.set(scale, scale, scale);
+
+  return (
     <primitive 
       object={scene} 
-      position={position} 
-      scale={scale}
     />
-  ) : null;
+  );
 };
 
 export default OptimizedGLTFScene;
